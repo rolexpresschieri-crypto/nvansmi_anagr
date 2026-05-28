@@ -94,17 +94,32 @@ export const memberTypeSelectOptions = ["S F", "S F U", "S F V", "S U", "S V", "
 export const teamSelectOptions = ["VALSUSA", "VARESE"];
 export const qualificationSelectOptions = [
   "ISTR TECH",
-  "PC",
+  "ODR",
   "SOCIO FONDAT.",
   "UCRS",
   "UCRS ISTR",
 ];
+
 export const ansmiOfficeOptions = ["CHIANOCCO", "TORINO", "CASTELLAMONTE", "VERRUA"];
 export const nvOfficeOptions = ["CHIANOCCO"];
 
 export function isVolunteerActive(volunteer: Pick<VolunteerRecord, "entry_date" | "exit_date">) {
   return Boolean(volunteer.entry_date) && !Boolean(volunteer.exit_date);
 }
+
+/** PC sostituito da ODR (dati legacy o CSV). */
+export function normalizeQualification(value: string | null | undefined): string {
+  if (!value) return "";
+  return value === "PC" ? "ODR" : value;
+}
+
+export function formatQualification(value: string | null | undefined): string {
+  const normalized = normalizeQualification(value);
+  return normalized || "-";
+}
+
+/** Checkbox filtri export (etichette sempre ODR, mai PC). */
+export const qualificationFilterOptions = qualificationSelectOptions;
 
 export function volunteerFormFromRecord(volunteer: VolunteerRecord): VolunteerFormValues {
   return {
@@ -114,7 +129,7 @@ export function volunteerFormFromRecord(volunteer: VolunteerRecord): VolunteerFo
     phone: volunteer.phone ?? "",
     email: volunteer.email ?? "",
     member_type: volunteer.member_type ?? "",
-    qualification: volunteer.qualification ?? "",
+    qualification: normalizeQualification(volunteer.qualification),
     team: volunteer.team ?? "",
     entry_date: volunteer.entry_date ?? "",
     exit_date: volunteer.exit_date ?? "",
@@ -141,7 +156,7 @@ export function volunteerPayloadFromForm(form: VolunteerFormValues) {
     phone: form.phone.trim() || null,
     email: form.email.trim() || null,
     member_type: form.member_type.trim() || null,
-    qualification: form.qualification.trim() || null,
+    qualification: normalizeQualification(form.qualification.trim()) || null,
     team: form.team.trim() || null,
     entry_date: form.entry_date || null,
     exit_date: form.exit_date || null,

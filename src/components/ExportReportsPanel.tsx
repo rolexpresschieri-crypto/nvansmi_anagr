@@ -9,7 +9,8 @@ import { supabase } from "@/lib/supabaseClient";
 import {
   isVolunteerActive,
   memberTypeSelectOptions,
-  qualificationSelectOptions,
+  normalizeQualification,
+  qualificationFilterOptions,
   teamSelectOptions,
   type VolunteerRecord,
   VOLUNTEER_EXPORT_SELECT_FIELDS,
@@ -34,7 +35,7 @@ export default function ExportReportsPanel() {
   ]);
   const [teamFilters, setTeamFilters] = useState<string[]>([...teamSelectOptions]);
   const [qualificationFilters, setQualificationFilters] = useState<string[]>([
-    ...qualificationSelectOptions,
+    ...qualificationFilterOptions,
   ]);
 
   const [medicalMemberTypeFilters, setMedicalMemberTypeFilters] = useState<string[]>([
@@ -98,10 +99,14 @@ export default function ExportReportsPanel() {
 
       if (!qualificationInitializedRef.current) {
         const fromData = Array.from(
-          new Set(rows.map((item) => item.qualification).filter(Boolean))
-        ) as string[];
+          new Set(
+            rows
+              .map((item) => normalizeQualification(item.qualification))
+              .filter(Boolean)
+          )
+        ).sort((a, b) => a.localeCompare(b, "it"));
         if (fromData.length > 0) {
-          setQualificationFilters(fromData.sort((a, b) => a.localeCompare(b, "it")));
+          setQualificationFilters(fromData);
         }
         qualificationInitializedRef.current = true;
       }
@@ -164,9 +169,10 @@ export default function ExportReportsPanel() {
       const matchTeam =
         teamFilters.length === 0 || (item.team ? teamFilters.includes(item.team) : false);
 
+      const qual = normalizeQualification(item.qualification);
       const matchQualification =
         qualificationFilters.length === 0 ||
-        (item.qualification ? qualificationFilters.includes(item.qualification) : false);
+        (qual ? qualificationFilters.includes(qual) : false);
 
       return matchSocio && matchMemberType && matchTeam && matchQualification;
     });
@@ -272,7 +278,8 @@ export default function ExportReportsPanel() {
     selected: string[],
     onToggle: (value: string) => void,
     onSelectAll: () => void,
-    onClearAll: () => void
+    onClearAll: () => void,
+    formatLabel: (value: string) => string = (value) => value
   ) => (
     <div className="rounded-md border border-slate-200 bg-white/80 p-3">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
@@ -294,10 +301,12 @@ export default function ExportReportsPanel() {
           >
             <input
               type="checkbox"
-              checked={selected.includes(option)}
+              checked={selected.some(
+                (item) => normalizeQualification(item) === normalizeQualification(option)
+              )}
               onChange={() => onToggle(option)}
             />
-            {option}
+            {formatLabel(option)}
           </label>
         ))}
       </div>
@@ -409,11 +418,13 @@ export default function ExportReportsPanel() {
 
           {checkboxGroup(
             "Qualifica",
-            qualificationSelectOptions,
+            qualificationFilterOptions,
             qualificationFilters,
-            (v) => setQualificationFilters((c) => toggleInList(c, v)),
-            () => setQualificationFilters([...qualificationSelectOptions]),
-            () => setQualificationFilters([])
+            (v) =>
+              setQualificationFilters((c) => toggleInList(c, normalizeQualification(v))),
+            () => setQualificationFilters([...qualificationFilterOptions]),
+            () => setQualificationFilters([]),
+            (v) => normalizeQualification(v) || v
           )}
 
           <p className="text-sm text-slate-700">

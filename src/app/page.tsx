@@ -8,6 +8,7 @@ import VolunteerExtrasPanel from "@/components/VolunteerExtrasPanel";
 import { supabase } from "@/lib/supabaseClient";
 import {
   emptyVolunteerForm,
+  formatQualification,
   isVolunteerActive,
   memberTypeSelectOptions,
   qualificationSelectOptions,
@@ -540,7 +541,7 @@ export default function Home() {
                       {volunteer.last_name} {volunteer.first_name}
                     </p>
                     <p className="text-sm text-slate-600">
-                      {volunteer.qualification ?? "-"} | {volunteer.team ?? "-"}
+                      {formatQualification(volunteer.qualification)} | {volunteer.team ?? "-"}
                     </p>
                   </button>
                 );
@@ -564,7 +565,7 @@ export default function Home() {
                       <p className="text-sm text-slate-600">
                         Stato: {isVolunteerActive(selectedVolunteer) ? "attivo" : "non attivo"}{" "}
                         | Tipo socio: {selectedVolunteer.member_type ?? "-"} | Qualifica:{" "}
-                        {selectedVolunteer.qualification ?? "-"} | Squadra:{" "}
+                        {formatQualification(selectedVolunteer.qualification)} | Squadra:{" "}
                         {selectedVolunteer.team ?? "-"}
                       </p>
                     </div>

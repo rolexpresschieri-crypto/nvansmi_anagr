@@ -64,7 +64,7 @@ const allowedTeam = new Set(["VALSUSA", "VARESE"]);
 const allowedMemberType = new Set(["S F", "S F U", "S F V", "S U", "S V", "S V U", "U"]);
 const allowedQualification = new Set([
   "ISTR TECH",
-  "PC",
+  "ODR",
   "SOCIO FONDAT.",
   "UCRS",
   "UCRS ISTR",
@@ -97,13 +97,15 @@ for (const row of records) {
   const teamRaw = clean(get(row, "SQUADRA"));
   const memberTypeRaw = clean(get(row, "TIPO SOCIO"));
   const qualificationRaw = clean(get(row, "QUALIFICA"));
+  const qualificationNormalized =
+    qualificationRaw === "PC" ? "ODR" : qualificationRaw;
 
   const ansmiOffice = allowedAnsmi.has(ansmiOfficeRaw) ? ansmiOfficeRaw : null;
   const nvOffice = allowedNv.has(nvOfficeRaw) ? nvOfficeRaw : null;
   const team = allowedTeam.has(teamRaw) ? teamRaw : null;
   const memberType = allowedMemberType.has(memberTypeRaw) ? memberTypeRaw : null;
-  const qualification = allowedQualification.has(qualificationRaw)
-    ? qualificationRaw
+  const qualification = allowedQualification.has(qualificationNormalized)
+    ? qualificationNormalized
     : null;
 
   const taxCode = clean(get(row, "COD. FISCALE"));
