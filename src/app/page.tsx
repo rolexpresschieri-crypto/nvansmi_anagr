@@ -3,67 +3,23 @@
 import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
+import VolunteerExtendedFormFields from "@/components/VolunteerExtendedFormFields";
 import VolunteerExtrasPanel from "@/components/VolunteerExtrasPanel";
 import { supabase } from "@/lib/supabaseClient";
+import {
+  emptyVolunteerForm,
+  isVolunteerActive,
+  memberTypeSelectOptions,
+  qualificationSelectOptions,
+  teamSelectOptions,
+  volunteerFormFromRecord,
+  volunteerPayloadFromForm,
+  VOLUNTEER_SELECT_FIELDS,
+  type VolunteerFormValues,
+  type VolunteerRecord,
+} from "@/lib/volunteerTypes";
 
-type Dog = {
-  id: string;
-  name: string | null;
-  breed: string | null;
-  sex: "M" | "F" | null;
-  microchip: string | null;
-};
-
-type Volunteer = {
-  id: string;
-  first_name: string;
-  last_name: string;
-  tax_code: string | null;
-  phone: string | null;
-  email: string | null;
-  qualification: string | null;
-  team: string | null;
-  member_type: string | null;
-  entry_date: string | null;
-  exit_date: string | null;
-  dogs: Dog[] | null;
-};
-
-type VolunteerFormValues = {
-  first_name: string;
-  last_name: string;
-  tax_code: string;
-  phone: string;
-  email: string;
-  member_type: string;
-  qualification: string;
-  team: string;
-  entry_date: string;
-  exit_date: string;
-};
-
-const emptyVolunteerForm = (): VolunteerFormValues => ({
-  first_name: "",
-  last_name: "",
-  tax_code: "",
-  phone: "",
-  email: "",
-  member_type: "",
-  qualification: "",
-  team: "",
-  entry_date: "",
-  exit_date: "",
-});
-
-const memberTypeSelectOptions = ["S F", "S F U", "S F V", "S U", "S V", "S V U", "U"];
-const teamSelectOptions = ["VALSUSA", "VARESE"];
-const qualificationSelectOptions = [
-  "ISTR TECH",
-  "PC",
-  "SOCIO FONDAT.",
-  "UCRS",
-  "UCRS ISTR",
-];
+type Volunteer = VolunteerRecord;
 
 export default function Home() {
   const [uiPreset, setUiPreset] = useState<"chiara" | "istituzionale">("chiara");
@@ -95,9 +51,6 @@ export default function Home() {
   const editorRef = useRef<HTMLElement | null>(null);
   const memberTypeInitializedRef = useRef(false);
   const teamInitializedRef = useRef(false);
-
-  const isVolunteerActive = (volunteer: Volunteer) =>
-    Boolean(volunteer.entry_date) && !Boolean(volunteer.exit_date);
 
   const loadPresetForUser = (userId: string | undefined) => {
     if (!userId) return;
@@ -139,9 +92,7 @@ export default function Home() {
 
     const { data, error } = await supabase
       .from("volunteers")
-      .select(
-        "id, first_name, last_name, tax_code, phone, email, qualification, team, member_type, entry_date, exit_date, dogs(id, name, breed, sex, microchip)"
-      )
+      .select(VOLUNTEER_SELECT_FIELDS)
       .order("last_name", { ascending: true });
 
     if (error) {
@@ -313,18 +264,7 @@ export default function Home() {
   const openEditVolunteer = () => {
     if (!selectedVolunteer) return;
     setEditingVolunteerId(selectedVolunteer.id);
-    setVolunteerForm({
-      first_name: selectedVolunteer.first_name ?? "",
-      last_name: selectedVolunteer.last_name ?? "",
-      tax_code: selectedVolunteer.tax_code ?? "",
-      phone: selectedVolunteer.phone ?? "",
-      email: selectedVolunteer.email ?? "",
-      member_type: selectedVolunteer.member_type ?? "",
-      qualification: selectedVolunteer.qualification ?? "",
-      team: selectedVolunteer.team ?? "",
-      entry_date: selectedVolunteer.entry_date ?? "",
-      exit_date: selectedVolunteer.exit_date ?? "",
-    });
+    setVolunteerForm(volunteerFormFromRecord(selectedVolunteer));
     setIsEditorOpen(true);
   };
 
@@ -340,18 +280,7 @@ export default function Home() {
     setIsSavingVolunteer(true);
     setErrorMessage(null);
 
-    const payload = {
-      first_name: volunteerForm.first_name.trim() || null,
-      last_name: volunteerForm.last_name.trim() || null,
-      tax_code: volunteerForm.tax_code.trim() || null,
-      phone: volunteerForm.phone.trim() || null,
-      email: volunteerForm.email.trim() || null,
-      member_type: volunteerForm.member_type.trim() || null,
-      qualification: volunteerForm.qualification.trim() || null,
-      team: volunteerForm.team.trim() || null,
-      entry_date: volunteerForm.entry_date || null,
-      exit_date: volunteerForm.exit_date || null,
-    };
+    const payload = volunteerPayloadFromForm(volunteerForm);
 
     if (!payload.first_name || !payload.last_name) {
       setErrorMessage("Nome e cognome sono obbligatori.");
@@ -651,6 +580,64 @@ export default function Home() {
                     CF: {selectedVolunteer.tax_code ?? "-"} | Tel: {selectedVolunteer.phone ?? "-"}{" "}
                     | Email: {selectedVolunteer.email ?? "-"}
                   </p>
+                  <div className="mt-3 grid gap-2 text-sm text-slate-700 sm:grid-cols-2">
+                    <p>
+                      <span className="font-semibold">Sede ANSMI:</span>{" "}
+                      {selectedVolunteer.ansmi_office ?? "-"}
+                    </p>
+                    <p>
+                      <span className="font-semibold">Sede NV ANSMI:</span>{" "}
+                      {selectedVolunteer.nv_office ?? "-"}
+                    </p>
+                    <p>
+                      <span className="font-semibold">Assicurazione PC:</span>{" "}
+                      {selectedVolunteer.pc_insurance ?? "-"}
+                    </p>
+                    <p>
+                      <span className="font-semibold">N° tessera ANSMI:</span>{" "}
+                      {selectedVolunteer.ansmi_card_number ?? "-"}
+                    </p>
+                    <p>
+                      <span className="font-semibold">N° tessera NV ANSMI:</span>{" "}
+                      {selectedVolunteer.nv_card_number ?? "-"}
+                    </p>
+                    <p className="sm:col-span-2">
+                      <span className="font-semibold">Residenza:</span>{" "}
+                      {[
+                        selectedVolunteer.residence_address,
+                        selectedVolunteer.residence_zip,
+                        selectedVolunteer.residence_city,
+                        selectedVolunteer.residence_province,
+                      ]
+                        .filter(Boolean)
+                        .join(" ") || "-"}
+                    </p>
+                    <p>
+                      <span className="font-semibold">Luogo di nascita:</span>{" "}
+                      {selectedVolunteer.birth_place ?? "-"}
+                      {selectedVolunteer.birth_province
+                        ? ` (${selectedVolunteer.birth_province})`
+                        : ""}
+                    </p>
+                    <p>
+                      <span className="font-semibold">Data di nascita:</span>{" "}
+                      {selectedVolunteer.birth_date
+                        ? new Date(selectedVolunteer.birth_date).toLocaleDateString("it-IT")
+                        : "-"}
+                    </p>
+                    <p>
+                      <span className="font-semibold">Data entrata:</span>{" "}
+                      {selectedVolunteer.entry_date
+                        ? new Date(selectedVolunteer.entry_date).toLocaleDateString("it-IT")
+                        : "-"}
+                    </p>
+                    <p>
+                      <span className="font-semibold">Data uscita:</span>{" "}
+                      {selectedVolunteer.exit_date
+                        ? new Date(selectedVolunteer.exit_date).toLocaleDateString("it-IT")
+                        : "-"}
+                    </p>
+                  </div>
                 </div>
 
                 <section>
@@ -833,6 +820,11 @@ export default function Home() {
                   className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
                 />
               </label>
+
+              <VolunteerExtendedFormFields
+                form={volunteerForm}
+                onChange={handleVolunteerFormChange}
+              />
 
               <div className="md:col-span-2 flex items-center gap-2 pt-2">
                 <button
