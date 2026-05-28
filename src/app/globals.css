@@ -1,8 +1,16 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f4f8fb;
+  --foreground: #102033;
+  --app-grad-1: rgba(37, 99, 235, 0.1);
+  --app-grad-2: rgba(5, 150, 105, 0.1);
+  --app-bg-top: #f8fbff;
+  --app-bg-bottom: #eef4f9;
+  --app-logo-opacity: 0.08;
+  --app-card-border: rgba(148, 163, 184, 0.28);
+  --app-card-bg: rgba(255, 255, 255, 0.86);
+  --app-card-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
 }
 
 @theme inline {
@@ -23,4 +31,56 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+.app-bg-layer {
+  position: fixed;
+  inset: 0;
+  z-index: -10;
+  background:
+    radial-gradient(circle at 15% 20%, var(--app-grad-1), transparent 38%),
+    radial-gradient(circle at 85% 10%, var(--app-grad-2), transparent 35%),
+    linear-gradient(180deg, var(--app-bg-top) 0%, var(--app-bg-bottom) 100%);
+}
+
+.app-logo-watermark {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  width: min(58vw, 620px);
+  transform: translate(-50%, -50%);
+  opacity: var(--app-logo-opacity);
+  filter: saturate(0.8);
+  pointer-events: none;
+  user-select: none;
+  z-index: -9;
+}
+
+.app-card {
+  border: 1px solid var(--app-card-border);
+  background: var(--app-card-bg);
+  box-shadow: var(--app-card-shadow);
+  backdrop-filter: blur(3px);
+}
+
+body.preset-chiara {
+  --app-grad-1: rgba(59, 130, 246, 0.1);
+  --app-grad-2: rgba(16, 185, 129, 0.09);
+  --app-bg-top: #f9fcff;
+  --app-bg-bottom: #eef5fb;
+  --app-logo-opacity: 0.07;
+  --app-card-border: rgba(148, 163, 184, 0.25);
+  --app-card-bg: rgba(255, 255, 255, 0.86);
+  --app-card-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+}
+
+body.preset-istituzionale {
+  --app-grad-1: rgba(22, 78, 99, 0.14);
+  --app-grad-2: rgba(21, 128, 61, 0.1);
+  --app-bg-top: #f4f8fb;
+  --app-bg-bottom: #e6eef5;
+  --app-logo-opacity: 0.11;
+  --app-card-border: rgba(30, 64, 175, 0.26);
+  --app-card-bg: rgba(255, 255, 255, 0.9);
+  --app-card-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
 }

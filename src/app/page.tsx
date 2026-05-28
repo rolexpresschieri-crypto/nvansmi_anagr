@@ -25,6 +25,7 @@ type Volunteer = {
 };
 
 export default function Home() {
+  const [uiPreset, setUiPreset] = useState<"chiara" | "istituzionale">("chiara");
   const [session, setSession] = useState<Session | null>(null);
   const [isBootLoading, setIsBootLoading] = useState(true);
   const [isAuthLoading, setIsAuthLoading] = useState(false);
@@ -39,16 +40,39 @@ export default function Home() {
   const [socioFilter, setSocioFilter] = useState<"tutti" | "attivi" | "non_attivi">(
     "tutti"
   );
-  const [memberTypeFilter, setMemberTypeFilter] = useState("TUTTI");
-  const [teamFilter, setTeamFilter] = useState<"TUTTE" | "VALSUSA" | "VARESE">(
-    "TUTTE"
-  );
+  const [memberTypeFilters, setMemberTypeFilters] = useState<string[]>([]);
+  const [teamFilters, setTeamFilters] = useState<string[]>([]);
   const [selectedVolunteerId, setSelectedVolunteerId] = useState<string | null>(
     null
   );
 
   const isVolunteerActive = (volunteer: Volunteer) =>
     Boolean(volunteer.entry_date) && !Boolean(volunteer.exit_date);
+
+  const loadPresetForUser = (userId: string | undefined) => {
+    if (!userId) return;
+    const storageKey = `nvansmi_ui_preset_${userId}`;
+    const savedPreset = window.localStorage.getItem(storageKey);
+    if (savedPreset === "chiara" || savedPreset === "istituzionale") {
+      setUiPreset(savedPreset);
+    } else {
+      setUiPreset("chiara");
+    }
+  };
+
+  useEffect(() => {
+    if (!session?.user?.id) return;
+    const storageKey = `nvansmi_ui_preset_${session.user.id}`;
+    window.localStorage.setItem(storageKey, uiPreset);
+  }, [uiPreset, session?.user?.id]);
+
+  useEffect(() => {
+    const body = document.body;
+    body.classList.remove("preset-chiara", "preset-istituzionale");
+    body.classList.add(
+      uiPreset === "chiara" ? "preset-chiara" : "preset-istituzionale"
+    );
+  }, [uiPreset]);
 
   useEffect(() => {
     const boot = async () => {
@@ -58,6 +82,7 @@ export default function Home() {
         setErrorMessage(error.message);
       } else {
         setSession(data.session);
+        loadPresetForUser(data.session?.user?.id);
       }
 
       setIsBootLoading(false);
@@ -68,6 +93,7 @@ export default function Home() {
     const { data: authListener } = supabase.auth.onAuthStateChange(
       (_event, currentSession) => {
         setSession(currentSession);
+        loadPresetForUser(currentSession?.user?.id);
       }
     );
 
@@ -127,13 +153,15 @@ export default function Home() {
         (socioFilter === "non_attivi" && !active);
 
       const matchMemberType =
-        memberTypeFilter === "TUTTI" || item.member_type === memberTypeFilter;
+        memberTypeFilters.length === 0 ||
+        (item.member_type ? memberTypeFilters.includes(item.member_type) : false);
 
-      const matchTeam = teamFilter === "TUTTE" || item.team === teamFilter;
+      const matchTeam =
+        teamFilters.length === 0 || (item.team ? teamFilters.includes(item.team) : false);
 
       return matchSearch && matchSocio && matchMemberType && matchTeam;
     });
-  }, [volunteers, search, socioFilter, memberTypeFilter, teamFilter]);
+  }, [volunteers, search, socioFilter, memberTypeFilters, teamFilters]);
 
   const memberTypeOptions = useMemo(() => {
     const values = Array.from(
@@ -141,6 +169,29 @@ export default function Home() {
     ) as string[];
     return values.sort((a, b) => a.localeCompare(b));
   }, [volunteers]);
+
+  const teamOptions = useMemo(() => {
+    const values = Array.from(
+      new Set(volunteers.map((item) => item.team).filter(Boolean))
+    ) as string[];
+    return values.sort((a, b) => a.localeCompare(b));
+  }, [volunteers]);
+
+  const toggleMemberType = (value: string) => {
+    setMemberTypeFilters((current) =>
+      current.includes(value)
+        ? current.filter((item) => item !== value)
+        : [...current, value]
+    );
+  };
+
+  const toggleTeam = (value: string) => {
+    setTeamFilters((current) =>
+      current.includes(value)
+        ? current.filter((item) => item !== value)
+        : [...current, value]
+    );
+  };
 
   const effectiveSelectedVolunteerId = useMemo(() => {
     const exists = filteredVolunteers.some((item) => item.id === selectedVolunteerId);
@@ -182,8 +233,8 @@ export default function Home() {
 
   if (isBootLoading) {
     return (
-      <main className="min-h-screen bg-slate-100 p-6">
-        <div className="mx-auto max-w-6xl rounded-xl bg-white p-6 shadow-sm">
+      <main className="min-h-screen p-6">
+        <div className="app-card mx-auto max-w-6xl rounded-xl p-6">
           Caricamento applicazione...
         </div>
       </main>
@@ -192,8 +243,8 @@ export default function Home() {
 
   if (!session) {
     return (
-      <main className="min-h-screen bg-slate-100 p-6">
-        <div className="mx-auto w-full max-w-md rounded-xl bg-white p-6 shadow-sm">
+      <main className="min-h-screen p-6">
+        <div className="app-card mx-auto w-full max-w-md rounded-xl p-6">
           <h1 className="text-2xl font-semibold text-slate-900">
             NV ANSMI - Accesso
           </h1>
@@ -249,9 +300,9 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-100 p-6">
+    <main className="min-h-screen p-6">
       <div className="mx-auto max-w-6xl space-y-4">
-        <header className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-white p-4 shadow-sm">
+        <header className="app-card flex flex-wrap items-center justify-between gap-3 rounded-xl p-4">
           <div className="space-y-2">
             <div>
             <h1 className="text-xl font-semibold text-slate-900">
@@ -259,7 +310,18 @@ export default function Home() {
             </h1>
             <p className="text-sm text-slate-600">{session.user.email}</p>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-3">
+              <select
+                value={uiPreset}
+                onChange={(event) =>
+                  setUiPreset(event.target.value as "chiara" | "istituzionale")
+                }
+                className="rounded-md border border-slate-300 px-2 py-1 text-sm font-semibold text-slate-700 outline-none focus:border-blue-500"
+              >
+                <option value="chiara">STILE: CHIARA</option>
+                <option value="istituzionale">STILE: ISTITUZIONALE</option>
+              </select>
+
               <select
                 value={socioFilter}
                 onChange={(event) =>
@@ -274,36 +336,55 @@ export default function Home() {
                 <option value="tutti">TUTTI I SOCI</option>
               </select>
 
-              <select
-                value={memberTypeFilter}
-                onChange={(event) => setMemberTypeFilter(event.target.value)}
-                className="rounded-md border border-slate-300 px-2 py-1 text-sm text-slate-700 outline-none focus:border-blue-500"
-              >
-                <option value="TUTTI">TIPO SOCIO: TUTTI</option>
-                {memberTypeOptions.map((value) => (
-                  <option key={value} value={value}>
-                    {value}
-                  </option>
-                ))}
-              </select>
+              <div className="rounded-md border border-indigo-300 bg-indigo-50 px-3 py-2">
+                <p className="mb-1 text-xs font-bold tracking-wide text-indigo-700">
+                  TIPO SOCIO (MULTI)
+                </p>
+                <div className="flex flex-wrap gap-x-3 gap-y-1">
+                  {memberTypeOptions.map((value) => (
+                    <label
+                      key={value}
+                      className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-900"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={memberTypeFilters.includes(value)}
+                        onChange={() => toggleMemberType(value)}
+                        className="h-3.5 w-3.5 accent-indigo-600"
+                      />
+                      {value}
+                    </label>
+                  ))}
+                </div>
+              </div>
 
-              <select
-                value={teamFilter}
-                onChange={(event) =>
-                  setTeamFilter(event.target.value as "TUTTE" | "VALSUSA" | "VARESE")
-                }
-                className="rounded-md border border-slate-300 px-2 py-1 text-sm text-slate-700 outline-none focus:border-blue-500"
-              >
-                <option value="TUTTE">SQUADRA: TUTTE</option>
-                <option value="VALSUSA">SQUADRA: VALSUSA</option>
-                <option value="VARESE">SQUADRA: VARESE</option>
-              </select>
+              <div className="rounded-md border border-emerald-300 bg-emerald-50 px-3 py-2">
+                <p className="mb-1 text-xs font-bold tracking-wide text-emerald-700">
+                  SQUADRA (MULTI)
+                </p>
+                <div className="flex flex-wrap gap-x-3 gap-y-1">
+                  {teamOptions.map((value) => (
+                    <label
+                      key={value}
+                      className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-900"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={teamFilters.includes(value)}
+                        onChange={() => toggleTeam(value)}
+                        className="h-3.5 w-3.5 accent-emerald-600"
+                      />
+                      {value}
+                    </label>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
           <button
             type="button"
             onClick={handleSignOut}
-            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            className="rounded-md border border-slate-300 bg-white/90 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
           >
             Esci
           </button>
@@ -316,7 +397,7 @@ export default function Home() {
         ) : null}
 
         <section className="grid gap-4 lg:grid-cols-[360px_1fr]">
-          <article className="rounded-xl bg-white p-4 shadow-sm">
+          <article className="app-card rounded-xl p-4">
             <div className="mb-3">
               <h2 className="text-lg font-semibold text-slate-900">Volontari</h2>
               <p className="text-sm text-slate-600">
@@ -351,7 +432,7 @@ export default function Home() {
                     className={`w-full rounded-md border px-3 py-2 text-left transition ${
                       isActive
                         ? "border-blue-500 bg-blue-50"
-                        : "border-slate-200 bg-white hover:bg-slate-50"
+                        : "border-slate-200 bg-white/75 hover:bg-slate-50"
                     }`}
                   >
                     <p className="font-semibold text-slate-900">
@@ -366,7 +447,7 @@ export default function Home() {
             </div>
           </article>
 
-          <article className="rounded-xl bg-white p-4 shadow-sm">
+          <article className="app-card rounded-xl p-4">
             {!selectedVolunteer ? (
               <p className="text-sm text-slate-600">
                 Seleziona un volontario per vedere il dettaglio.

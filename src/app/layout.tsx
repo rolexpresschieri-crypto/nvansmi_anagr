@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Image from "next/image";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -27,7 +28,18 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <div className="app-bg-layer" />
+        <Image
+          src="/logo-nvansmi.png"
+          alt="NV ANSMI Logo"
+          className="app-logo-watermark"
+          width={620}
+          height={620}
+          priority
+        />
+        {children}
+      </body>
     </html>
   );
 }
