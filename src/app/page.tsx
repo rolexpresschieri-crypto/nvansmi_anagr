@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabaseClient";
@@ -16,6 +17,9 @@ type Volunteer = {
   id: string;
   first_name: string;
   last_name: string;
+  tax_code: string | null;
+  phone: string | null;
+  email: string | null;
   qualification: string | null;
   team: string | null;
   member_type: string | null;
@@ -23,6 +27,32 @@ type Volunteer = {
   exit_date: string | null;
   dogs: Dog[] | null;
 };
+
+type VolunteerFormValues = {
+  first_name: string;
+  last_name: string;
+  tax_code: string;
+  phone: string;
+  email: string;
+  member_type: string;
+  qualification: string;
+  team: string;
+  entry_date: string;
+  exit_date: string;
+};
+
+const emptyVolunteerForm = (): VolunteerFormValues => ({
+  first_name: "",
+  last_name: "",
+  tax_code: "",
+  phone: "",
+  email: "",
+  member_type: "",
+  qualification: "",
+  team: "",
+  entry_date: "",
+  exit_date: "",
+});
 
 export default function Home() {
   const [uiPreset, setUiPreset] = useState<"chiara" | "istituzionale">("chiara");
@@ -42,8 +72,16 @@ export default function Home() {
   );
   const [memberTypeFilters, setMemberTypeFilters] = useState<string[]>([]);
   const [teamFilters, setTeamFilters] = useState<string[]>([]);
+  const [memberTypeInitialized, setMemberTypeInitialized] = useState(false);
+  const [teamInitialized, setTeamInitialized] = useState(false);
   const [selectedVolunteerId, setSelectedVolunteerId] = useState<string | null>(
     null
+  );
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [editingVolunteerId, setEditingVolunteerId] = useState<string | null>(null);
+  const [isSavingVolunteer, setIsSavingVolunteer] = useState(false);
+  const [volunteerForm, setVolunteerForm] = useState<VolunteerFormValues>(
+    emptyVolunteerForm
   );
 
   const isVolunteerActive = (volunteer: Volunteer) =>
@@ -83,6 +121,7 @@ export default function Home() {
       } else {
         setSession(data.session);
         loadPresetForUser(data.session?.user?.id);
+        await loadVolunteersForSession(data.session);
       }
 
       setIsBootLoading(false);
@@ -94,48 +133,67 @@ export default function Home() {
       (_event, currentSession) => {
         setSession(currentSession);
         loadPresetForUser(currentSession?.user?.id);
+        void loadVolunteersForSession(currentSession);
       }
     );
 
     return () => authListener.subscription.unsubscribe();
   }, []);
 
-  useEffect(() => {
-    const loadVolunteers = async () => {
-      if (!session) {
-        setVolunteers([]);
-        setSelectedVolunteerId(null);
-        return;
-      }
+  async function loadVolunteersForSession(currentSession: Session | null) {
+    if (!currentSession) {
+      setVolunteers([]);
+      setSelectedVolunteerId(null);
+      setMemberTypeInitialized(false);
+      setTeamInitialized(false);
+      return;
+    }
 
-      setIsDataLoading(true);
-      setErrorMessage(null);
+    setIsDataLoading(true);
+    setErrorMessage(null);
 
-      const { data, error } = await supabase
-        .from("volunteers")
-        .select(
-          "id, first_name, last_name, qualification, team, member_type, entry_date, exit_date, dogs(id, name, breed, sex, microchip)"
-        )
-        .order("last_name", { ascending: true });
+    const { data, error } = await supabase
+      .from("volunteers")
+      .select(
+        "id, first_name, last_name, tax_code, phone, email, qualification, team, member_type, entry_date, exit_date, dogs(id, name, breed, sex, microchip)"
+      )
+      .order("last_name", { ascending: true });
 
-      if (error) {
-        setErrorMessage(error.message);
-      } else {
-        const rows = (data ?? []) as Volunteer[];
-        setVolunteers(rows);
+    if (error) {
+      setErrorMessage(error.message);
+    } else {
+      const rows = (data ?? []) as Volunteer[];
+      setVolunteers(rows);
 
-        if (rows.length > 0) {
-          setSelectedVolunteerId((current) => current ?? rows[0].id);
-        } else {
-          setSelectedVolunteerId(null);
+      if (!memberTypeInitialized) {
+        const allMemberTypes = Array.from(
+          new Set(rows.map((item) => item.member_type).filter(Boolean))
+        ) as string[];
+        if (allMemberTypes.length > 0) {
+          setMemberTypeFilters(allMemberTypes.sort((a, b) => a.localeCompare(b)));
+          setMemberTypeInitialized(true);
         }
       }
 
-      setIsDataLoading(false);
-    };
+      if (!teamInitialized) {
+        const allTeams = Array.from(
+          new Set(rows.map((item) => item.team).filter(Boolean))
+        ) as string[];
+        if (allTeams.length > 0) {
+          setTeamFilters(allTeams.sort((a, b) => a.localeCompare(b)));
+          setTeamInitialized(true);
+        }
+      }
 
-    loadVolunteers();
-  }, [session]);
+      if (rows.length > 0) {
+        setSelectedVolunteerId((current) => current ?? rows[0].id);
+      } else {
+        setSelectedVolunteerId(null);
+      }
+    }
+
+    setIsDataLoading(false);
+  }
 
   const filteredVolunteers = useMemo(() => {
     const keyword = search.trim().toLowerCase();
@@ -231,6 +289,84 @@ export default function Home() {
     await supabase.auth.signOut();
   };
 
+  const openNewVolunteer = () => {
+    setEditingVolunteerId(null);
+    setVolunteerForm(emptyVolunteerForm());
+    setIsEditorOpen(true);
+  };
+
+  const openEditVolunteer = () => {
+    if (!selectedVolunteer) return;
+    setEditingVolunteerId(selectedVolunteer.id);
+    setVolunteerForm({
+      first_name: selectedVolunteer.first_name ?? "",
+      last_name: selectedVolunteer.last_name ?? "",
+      tax_code: selectedVolunteer.tax_code ?? "",
+      phone: selectedVolunteer.phone ?? "",
+      email: selectedVolunteer.email ?? "",
+      member_type: selectedVolunteer.member_type ?? "",
+      qualification: selectedVolunteer.qualification ?? "",
+      team: selectedVolunteer.team ?? "",
+      entry_date: selectedVolunteer.entry_date ?? "",
+      exit_date: selectedVolunteer.exit_date ?? "",
+    });
+    setIsEditorOpen(true);
+  };
+
+  const handleVolunteerFormChange = (
+    field: keyof VolunteerFormValues,
+    value: string
+  ) => {
+    setVolunteerForm((current) => ({ ...current, [field]: value }));
+  };
+
+  const handleVolunteerSave = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsSavingVolunteer(true);
+    setErrorMessage(null);
+
+    const payload = {
+      first_name: volunteerForm.first_name.trim() || null,
+      last_name: volunteerForm.last_name.trim() || null,
+      tax_code: volunteerForm.tax_code.trim() || null,
+      phone: volunteerForm.phone.trim() || null,
+      email: volunteerForm.email.trim() || null,
+      member_type: volunteerForm.member_type.trim() || null,
+      qualification: volunteerForm.qualification.trim() || null,
+      team: volunteerForm.team.trim() || null,
+      entry_date: volunteerForm.entry_date || null,
+      exit_date: volunteerForm.exit_date || null,
+    };
+
+    if (!payload.first_name || !payload.last_name) {
+      setErrorMessage("Nome e cognome sono obbligatori.");
+      setIsSavingVolunteer(false);
+      return;
+    }
+
+    const query = editingVolunteerId
+      ? supabase.from("volunteers").update(payload).eq("id", editingVolunteerId)
+      : supabase.from("volunteers").insert(payload).select("id").single();
+
+    const { data, error } = await query;
+
+    if (error) {
+      setErrorMessage(error.message);
+      setIsSavingVolunteer(false);
+      return;
+    }
+
+    if (!editingVolunteerId && data && "id" in data) {
+      setSelectedVolunteerId(data.id as string);
+    }
+
+    setIsEditorOpen(false);
+    setEditingVolunteerId(null);
+    setVolunteerForm(emptyVolunteerForm());
+    await loadVolunteersForSession(session);
+    setIsSavingVolunteer(false);
+  };
+
   if (isBootLoading) {
     return (
       <main className="min-h-screen p-6">
@@ -322,6 +458,13 @@ export default function Home() {
                 <option value="istituzionale">STILE: ISTITUZIONALE</option>
               </select>
 
+              <Link
+                href="/export"
+                className="inline-flex items-center rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-bold text-amber-800 hover:bg-amber-100"
+              >
+                EXPORT / REPORT
+              </Link>
+
               <select
                 value={socioFilter}
                 onChange={(event) =>
@@ -398,11 +541,20 @@ export default function Home() {
 
         <section className="grid gap-4 lg:grid-cols-[360px_1fr]">
           <article className="app-card rounded-xl p-4">
-            <div className="mb-3">
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <div>
               <h2 className="text-lg font-semibold text-slate-900">Volontari</h2>
               <p className="text-sm text-slate-600">
                 Totale: {filteredVolunteers.length}
               </p>
+              </div>
+              <button
+                type="button"
+                onClick={openNewVolunteer}
+                className="rounded-md bg-blue-600 px-3 py-2 text-xs font-bold text-white hover:bg-blue-700"
+              >
+                + NUOVO
+              </button>
             </div>
 
             <input
@@ -455,14 +607,29 @@ export default function Home() {
             ) : (
               <div className="space-y-5">
                 <div>
-                  <h2 className="text-xl font-semibold text-slate-900">
-                    {selectedVolunteer.last_name} {selectedVolunteer.first_name}
-                  </h2>
-                  <p className="text-sm text-slate-600">
-                    Stato: {isVolunteerActive(selectedVolunteer) ? "attivo" : "non attivo"}{" "}
-                    | Tipo socio: {selectedVolunteer.member_type ?? "-"} | Qualifica:{" "}
-                    {selectedVolunteer.qualification ?? "-"} | Squadra:{" "}
-                    {selectedVolunteer.team ?? "-"}
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <h2 className="text-xl font-semibold text-slate-900">
+                        {selectedVolunteer.last_name} {selectedVolunteer.first_name}
+                      </h2>
+                      <p className="text-sm text-slate-600">
+                        Stato: {isVolunteerActive(selectedVolunteer) ? "attivo" : "non attivo"}{" "}
+                        | Tipo socio: {selectedVolunteer.member_type ?? "-"} | Qualifica:{" "}
+                        {selectedVolunteer.qualification ?? "-"} | Squadra:{" "}
+                        {selectedVolunteer.team ?? "-"}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={openEditVolunteer}
+                      className="rounded-md border border-blue-300 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-100"
+                    >
+                      MODIFICA VOLONTARIO
+                    </button>
+                  </div>
+                  <p className="mt-1 text-xs text-slate-500">
+                    CF: {selectedVolunteer.tax_code ?? "-"} | Tel: {selectedVolunteer.phone ?? "-"}{" "}
+                    | Email: {selectedVolunteer.email ?? "-"}
                   </p>
                 </div>
 
@@ -495,6 +662,146 @@ export default function Home() {
             )}
           </article>
         </section>
+
+        {isEditorOpen ? (
+          <section className="app-card rounded-xl p-4">
+            <h3 className="text-lg font-semibold text-slate-900">
+              {editingVolunteerId ? "Modifica volontario" : "Nuovo volontario"}
+            </h3>
+            <form onSubmit={handleVolunteerSave} className="mt-3 grid gap-3 md:grid-cols-2">
+              <label className="block">
+                <span className="mb-1 block text-xs font-semibold text-slate-700">Nome *</span>
+                <input
+                  type="text"
+                  required
+                  value={volunteerForm.first_name}
+                  onChange={(event) =>
+                    handleVolunteerFormChange("first_name", event.target.value)
+                  }
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+                />
+              </label>
+
+              <label className="block">
+                <span className="mb-1 block text-xs font-semibold text-slate-700">Cognome *</span>
+                <input
+                  type="text"
+                  required
+                  value={volunteerForm.last_name}
+                  onChange={(event) =>
+                    handleVolunteerFormChange("last_name", event.target.value)
+                  }
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+                />
+              </label>
+
+              <label className="block">
+                <span className="mb-1 block text-xs font-semibold text-slate-700">Codice fiscale</span>
+                <input
+                  type="text"
+                  value={volunteerForm.tax_code}
+                  onChange={(event) =>
+                    handleVolunteerFormChange("tax_code", event.target.value)
+                  }
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+                />
+              </label>
+
+              <label className="block">
+                <span className="mb-1 block text-xs font-semibold text-slate-700">Telefono</span>
+                <input
+                  type="text"
+                  value={volunteerForm.phone}
+                  onChange={(event) => handleVolunteerFormChange("phone", event.target.value)}
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+                />
+              </label>
+
+              <label className="block md:col-span-2">
+                <span className="mb-1 block text-xs font-semibold text-slate-700">Email</span>
+                <input
+                  type="email"
+                  value={volunteerForm.email}
+                  onChange={(event) => handleVolunteerFormChange("email", event.target.value)}
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+                />
+              </label>
+
+              <label className="block">
+                <span className="mb-1 block text-xs font-semibold text-slate-700">Tipo socio</span>
+                <input
+                  type="text"
+                  value={volunteerForm.member_type}
+                  onChange={(event) =>
+                    handleVolunteerFormChange("member_type", event.target.value)
+                  }
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+                />
+              </label>
+
+              <label className="block">
+                <span className="mb-1 block text-xs font-semibold text-slate-700">Squadra</span>
+                <input
+                  type="text"
+                  value={volunteerForm.team}
+                  onChange={(event) => handleVolunteerFormChange("team", event.target.value)}
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+                />
+              </label>
+
+              <label className="block">
+                <span className="mb-1 block text-xs font-semibold text-slate-700">Qualifica</span>
+                <input
+                  type="text"
+                  value={volunteerForm.qualification}
+                  onChange={(event) =>
+                    handleVolunteerFormChange("qualification", event.target.value)
+                  }
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+                />
+              </label>
+
+              <label className="block">
+                <span className="mb-1 block text-xs font-semibold text-slate-700">Data entrata</span>
+                <input
+                  type="date"
+                  value={volunteerForm.entry_date}
+                  onChange={(event) =>
+                    handleVolunteerFormChange("entry_date", event.target.value)
+                  }
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+                />
+              </label>
+
+              <label className="block">
+                <span className="mb-1 block text-xs font-semibold text-slate-700">Data uscita</span>
+                <input
+                  type="date"
+                  value={volunteerForm.exit_date}
+                  onChange={(event) => handleVolunteerFormChange("exit_date", event.target.value)}
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+                />
+              </label>
+
+              <div className="md:col-span-2 flex items-center gap-2 pt-2">
+                <button
+                  type="submit"
+                  disabled={isSavingVolunteer}
+                  className="rounded-md bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  {isSavingVolunteer ? "Salvataggio..." : "Salva volontario"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsEditorOpen(false)}
+                  className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                >
+                  Annulla
+                </button>
+              </div>
+            </form>
+          </section>
+        ) : null}
       </div>
     </main>
   );
