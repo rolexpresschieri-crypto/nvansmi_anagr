@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -72,8 +72,6 @@ export default function Home() {
   );
   const [memberTypeFilters, setMemberTypeFilters] = useState<string[]>([]);
   const [teamFilters, setTeamFilters] = useState<string[]>([]);
-  const [memberTypeInitialized, setMemberTypeInitialized] = useState(false);
-  const [teamInitialized, setTeamInitialized] = useState(false);
   const [selectedVolunteerId, setSelectedVolunteerId] = useState<string | null>(
     null
   );
@@ -83,6 +81,9 @@ export default function Home() {
   const [volunteerForm, setVolunteerForm] = useState<VolunteerFormValues>(
     emptyVolunteerForm
   );
+  const editorRef = useRef<HTMLElement | null>(null);
+  const memberTypeInitializedRef = useRef(false);
+  const teamInitializedRef = useRef(false);
 
   const isVolunteerActive = (volunteer: Volunteer) =>
     Boolean(volunteer.entry_date) && !Boolean(volunteer.exit_date);
@@ -112,6 +113,64 @@ export default function Home() {
     );
   }, [uiPreset]);
 
+  const loadVolunteersForSession = useCallback(
+    async (currentSession: Session | null) => {
+    if (!currentSession) {
+      setVolunteers([]);
+      setSelectedVolunteerId(null);
+      memberTypeInitializedRef.current = false;
+      teamInitializedRef.current = false;
+      return;
+    }
+
+    setIsDataLoading(true);
+    setErrorMessage(null);
+
+    const { data, error } = await supabase
+      .from("volunteers")
+      .select(
+        "id, first_name, last_name, tax_code, phone, email, qualification, team, member_type, entry_date, exit_date, dogs(id, name, breed, sex, microchip)"
+      )
+      .order("last_name", { ascending: true });
+
+    if (error) {
+      setErrorMessage(error.message);
+    } else {
+      const rows = (data ?? []) as Volunteer[];
+      setVolunteers(rows);
+
+      if (!memberTypeInitializedRef.current) {
+        const allMemberTypes = Array.from(
+          new Set(rows.map((item) => item.member_type).filter(Boolean))
+        ) as string[];
+        if (allMemberTypes.length > 0) {
+          setMemberTypeFilters(allMemberTypes.sort((a, b) => a.localeCompare(b)));
+          memberTypeInitializedRef.current = true;
+        }
+      }
+
+      if (!teamInitializedRef.current) {
+        const allTeams = Array.from(
+          new Set(rows.map((item) => item.team).filter(Boolean))
+        ) as string[];
+        if (allTeams.length > 0) {
+          setTeamFilters(allTeams.sort((a, b) => a.localeCompare(b)));
+          teamInitializedRef.current = true;
+        }
+      }
+
+      if (rows.length > 0) {
+        setSelectedVolunteerId((current) => current ?? rows[0].id);
+      } else {
+        setSelectedVolunteerId(null);
+      }
+    }
+
+    setIsDataLoading(false);
+    },
+    []
+  );
+
   useEffect(() => {
     const boot = async () => {
       const { data, error } = await supabase.auth.getSession();
@@ -138,62 +197,7 @@ export default function Home() {
     );
 
     return () => authListener.subscription.unsubscribe();
-  }, []);
-
-  async function loadVolunteersForSession(currentSession: Session | null) {
-    if (!currentSession) {
-      setVolunteers([]);
-      setSelectedVolunteerId(null);
-      setMemberTypeInitialized(false);
-      setTeamInitialized(false);
-      return;
-    }
-
-    setIsDataLoading(true);
-    setErrorMessage(null);
-
-    const { data, error } = await supabase
-      .from("volunteers")
-      .select(
-        "id, first_name, last_name, tax_code, phone, email, qualification, team, member_type, entry_date, exit_date, dogs(id, name, breed, sex, microchip)"
-      )
-      .order("last_name", { ascending: true });
-
-    if (error) {
-      setErrorMessage(error.message);
-    } else {
-      const rows = (data ?? []) as Volunteer[];
-      setVolunteers(rows);
-
-      if (!memberTypeInitialized) {
-        const allMemberTypes = Array.from(
-          new Set(rows.map((item) => item.member_type).filter(Boolean))
-        ) as string[];
-        if (allMemberTypes.length > 0) {
-          setMemberTypeFilters(allMemberTypes.sort((a, b) => a.localeCompare(b)));
-          setMemberTypeInitialized(true);
-        }
-      }
-
-      if (!teamInitialized) {
-        const allTeams = Array.from(
-          new Set(rows.map((item) => item.team).filter(Boolean))
-        ) as string[];
-        if (allTeams.length > 0) {
-          setTeamFilters(allTeams.sort((a, b) => a.localeCompare(b)));
-          setTeamInitialized(true);
-        }
-      }
-
-      if (rows.length > 0) {
-        setSelectedVolunteerId((current) => current ?? rows[0].id);
-      } else {
-        setSelectedVolunteerId(null);
-      }
-    }
-
-    setIsDataLoading(false);
-  }
+  }, [loadVolunteersForSession]);
 
   const filteredVolunteers = useMemo(() => {
     const keyword = search.trim().toLowerCase();
@@ -367,6 +371,11 @@ export default function Home() {
     setIsSavingVolunteer(false);
   };
 
+  useEffect(() => {
+    if (!isEditorOpen) return;
+    editorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [isEditorOpen]);
+
   if (isBootLoading) {
     return (
       <main className="min-h-screen p-6">
@@ -472,7 +481,7 @@ export default function Home() {
                     event.target.value as "tutti" | "attivi" | "non_attivi"
                   )
                 }
-                className="rounded-md border border-slate-300 px-2 py-1 text-sm text-slate-700 outline-none focus:border-blue-500"
+                className="rounded-md border border-slate-300 px-2 py-1 text-sm font-bold text-slate-800 outline-none focus:border-blue-500"
               >
                 <option value="attivi">SOCI ATTIVI</option>
                 <option value="non_attivi">SOCI NON ATTIVI</option>
@@ -664,7 +673,7 @@ export default function Home() {
         </section>
 
         {isEditorOpen ? (
-          <section className="app-card rounded-xl p-4">
+          <section ref={editorRef} className="app-card rounded-xl p-4">
             <h3 className="text-lg font-semibold text-slate-900">
               {editingVolunteerId ? "Modifica volontario" : "Nuovo volontario"}
             </h3>
