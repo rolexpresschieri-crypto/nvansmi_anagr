@@ -36,6 +36,8 @@ yarn-error.log*
 # local data exports/imports
 *.csv
 import_from_csv.sql
+import_k9_from_csv.sql
+import_volunteer_extras_from_csv.sql
 
 # vercel
 .vercel

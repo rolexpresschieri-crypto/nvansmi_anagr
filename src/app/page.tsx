@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
+import VolunteerExtrasPanel from "@/components/VolunteerExtrasPanel";
 import { supabase } from "@/lib/supabaseClient";
 
 type Dog = {
@@ -53,6 +54,16 @@ const emptyVolunteerForm = (): VolunteerFormValues => ({
   entry_date: "",
   exit_date: "",
 });
+
+const memberTypeSelectOptions = ["S F", "S F U", "S F V", "S U", "S V", "S V U", "U"];
+const teamSelectOptions = ["VALSUSA", "VARESE"];
+const qualificationSelectOptions = [
+  "ISTR TECH",
+  "PC",
+  "SOCIO FONDAT.",
+  "UCRS",
+  "UCRS ISTR",
+];
 
 export default function Home() {
   const [uiPreset, setUiPreset] = useState<"chiara" | "istituzionale">("chiara");
@@ -667,6 +678,19 @@ export default function Home() {
                     )}
                   </div>
                 </section>
+
+                <section>
+                  <h3 className="text-lg font-semibold text-slate-900">
+                    Visite, corsi e dotazioni
+                  </h3>
+                  <div className="mt-2">
+                    <VolunteerExtrasPanel
+                      key={selectedVolunteer.id}
+                      volunteerId={selectedVolunteer.id}
+                      onError={setErrorMessage}
+                    />
+                  </div>
+                </section>
               </div>
             )}
           </article>
@@ -738,36 +762,54 @@ export default function Home() {
 
               <label className="block">
                 <span className="mb-1 block text-xs font-semibold text-slate-700">Tipo socio</span>
-                <input
-                  type="text"
+                <select
                   value={volunteerForm.member_type}
                   onChange={(event) =>
                     handleVolunteerFormChange("member_type", event.target.value)
                   }
                   className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
-                />
+                >
+                  <option value="">Seleziona tipo socio</option>
+                  {memberTypeSelectOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
               </label>
 
               <label className="block">
                 <span className="mb-1 block text-xs font-semibold text-slate-700">Squadra</span>
-                <input
-                  type="text"
+                <select
                   value={volunteerForm.team}
                   onChange={(event) => handleVolunteerFormChange("team", event.target.value)}
                   className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
-                />
+                >
+                  <option value="">Seleziona squadra</option>
+                  {teamSelectOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
               </label>
 
               <label className="block">
                 <span className="mb-1 block text-xs font-semibold text-slate-700">Qualifica</span>
-                <input
-                  type="text"
+                <select
                   value={volunteerForm.qualification}
                   onChange={(event) =>
                     handleVolunteerFormChange("qualification", event.target.value)
                   }
                   className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
-                />
+                >
+                  <option value="">Seleziona qualifica</option>
+                  {qualificationSelectOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
               </label>
 
               <label className="block">
