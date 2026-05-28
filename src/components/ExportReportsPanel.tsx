@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
+import { generateMedicalVisitsPdf } from "@/lib/generateMedicalVisitsPdf";
 import { generateVolunteersPdf } from "@/lib/generateVolunteersPdf";
 import { supabase } from "@/lib/supabaseClient";
 import {
@@ -23,6 +24,7 @@ export default function ExportReportsPanel() {
   const [isBootLoading, setIsBootLoading] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isGeneratingMedical, setIsGeneratingMedical] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [volunteers, setVolunteers] = useState<VolunteerRecord[]>([]);
 
@@ -35,9 +37,18 @@ export default function ExportReportsPanel() {
     ...qualificationSelectOptions,
   ]);
 
+  const [medicalMemberTypeFilters, setMedicalMemberTypeFilters] = useState<string[]>([
+    ...memberTypeSelectOptions,
+  ]);
+  const [medicalTeamFilters, setMedicalTeamFilters] = useState<string[]>([
+    ...teamSelectOptions,
+  ]);
+
   const memberTypeInitializedRef = useRef(false);
   const teamInitializedRef = useRef(false);
   const qualificationInitializedRef = useRef(false);
+  const medicalMemberTypeInitializedRef = useRef(false);
+  const medicalTeamInitializedRef = useRef(false);
 
   const loadVolunteers = useCallback(async (currentSession: Session | null) => {
     if (!currentSession) {
@@ -45,6 +56,8 @@ export default function ExportReportsPanel() {
       memberTypeInitializedRef.current = false;
       teamInitializedRef.current = false;
       qualificationInitializedRef.current = false;
+      medicalMemberTypeInitializedRef.current = false;
+      medicalTeamInitializedRef.current = false;
       return;
     }
 
@@ -91,6 +104,26 @@ export default function ExportReportsPanel() {
           setQualificationFilters(fromData.sort((a, b) => a.localeCompare(b, "it")));
         }
         qualificationInitializedRef.current = true;
+      }
+
+      if (!medicalMemberTypeInitializedRef.current) {
+        const fromData = Array.from(
+          new Set(rows.map((item) => item.member_type).filter(Boolean))
+        ) as string[];
+        if (fromData.length > 0) {
+          setMedicalMemberTypeFilters(fromData.sort((a, b) => a.localeCompare(b, "it")));
+        }
+        medicalMemberTypeInitializedRef.current = true;
+      }
+
+      if (!medicalTeamInitializedRef.current) {
+        const fromData = Array.from(
+          new Set(rows.map((item) => item.team).filter(Boolean))
+        ) as string[];
+        if (fromData.length > 0) {
+          setMedicalTeamFilters(fromData.sort((a, b) => a.localeCompare(b, "it")));
+        }
+        medicalTeamInitializedRef.current = true;
       }
     }
 
@@ -139,6 +172,22 @@ export default function ExportReportsPanel() {
     });
   }, [volunteers, socioFilter, memberTypeFilters, teamFilters, qualificationFilters]);
 
+  const filteredMedicalVolunteers = useMemo(() => {
+    return volunteers.filter((item) => {
+      if (!isVolunteerActive(item)) return false;
+
+      const matchMemberType =
+        medicalMemberTypeFilters.length === 0 ||
+        (item.member_type ? medicalMemberTypeFilters.includes(item.member_type) : false);
+
+      const matchTeam =
+        medicalTeamFilters.length === 0 ||
+        (item.team ? medicalTeamFilters.includes(item.team) : false);
+
+      return matchMemberType && matchTeam;
+    });
+  }, [volunteers, medicalMemberTypeFilters, medicalTeamFilters]);
+
   const filterSummary = useMemo(() => {
     const parts: string[] = [];
     if (socioFilter === "attivi") parts.push("Soci attivi");
@@ -154,6 +203,17 @@ export default function ExportReportsPanel() {
     return parts.join(" | ");
   }, [socioFilter, memberTypeFilters, teamFilters, qualificationFilters]);
 
+  const medicalFilterSummary = useMemo(() => {
+    const parts: string[] = ["Soci attivi"];
+    if (medicalMemberTypeFilters.length > 0) {
+      parts.push(`Tipo socio: ${medicalMemberTypeFilters.join(", ")}`);
+    }
+    if (medicalTeamFilters.length > 0) {
+      parts.push(`Squadra: ${medicalTeamFilters.join(", ")}`);
+    }
+    return parts.join(" | ");
+  }, [medicalMemberTypeFilters, medicalTeamFilters]);
+
   const handleGeneratePdf = async () => {
     setIsGenerating(true);
     setErrorMessage(null);
@@ -163,6 +223,22 @@ export default function ExportReportsPanel() {
       setErrorMessage(err instanceof Error ? err.message : "Errore generazione PDF");
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const scrollToReport = (sectionId: string) => {
+    document.getElementById(sectionId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const handleGenerateMedicalPdf = async () => {
+    setIsGeneratingMedical(true);
+    setErrorMessage(null);
+    try {
+      await generateMedicalVisitsPdf(filteredMedicalVolunteers, medicalFilterSummary);
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : "Errore generazione PDF");
+    } finally {
+      setIsGeneratingMedical(false);
     }
   };
 
@@ -245,6 +321,35 @@ export default function ExportReportsPanel() {
               Torna all&apos;anagrafica
             </Link>
           </div>
+
+          <nav
+            aria-label="Menu report"
+            className="mt-4 rounded-lg border border-slate-200 bg-slate-50/90 p-2"
+          >
+            <p className="mb-2 px-2 text-xs font-bold uppercase tracking-wide text-slate-500">
+              Menu report
+            </p>
+            <ul className="flex flex-col gap-1 sm:flex-row sm:flex-wrap">
+              <li>
+                <button
+                  type="button"
+                  onClick={() => scrollToReport("report-elenco-volontari")}
+                  className="w-full rounded-md px-3 py-2 text-left text-sm font-semibold text-blue-800 hover:bg-blue-50 sm:w-auto"
+                >
+                  1. Elenco volontari (PDF)
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => scrollToReport("report-situazione-visite-mediche")}
+                  className="w-full rounded-md px-3 py-2 text-left text-sm font-semibold text-blue-800 hover:bg-blue-50 sm:w-auto"
+                >
+                  2. Situazione visite mediche
+                </button>
+              </li>
+            </ul>
+          </nav>
         </header>
 
         {errorMessage ? (
@@ -253,7 +358,10 @@ export default function ExportReportsPanel() {
           </p>
         ) : null}
 
-        <section className="app-card rounded-xl p-4 space-y-4">
+        <section
+          id="report-elenco-volontari"
+          className="app-card scroll-mt-4 rounded-xl p-4 space-y-4"
+        >
           <h2 className="text-lg font-semibold text-slate-900">1. Elenco volontari (PDF)</h2>
           <p className="text-sm text-slate-600">
             Colonne: data entrata/uscita, sedi, squadra, tipo socio, qualifica, anagrafica,
@@ -324,11 +432,57 @@ export default function ExportReportsPanel() {
           </button>
         </section>
 
+        <section
+          id="report-situazione-visite-mediche"
+          className="app-card scroll-mt-4 rounded-xl p-4 space-y-4"
+        >
+          <h2 className="text-lg font-semibold text-slate-900">2. Situazione visite mediche</h2>
+          <p className="text-sm text-slate-600">
+            Solo soci attivi. Colonne: squadra, cognome, nome, data ultima visita medica, data
+            scadenza, giorni di ritardo sulla scadenza (solo se visita scaduta).
+          </p>
+
+          {checkboxGroup(
+            "Tipo socio",
+            memberTypeSelectOptions,
+            medicalMemberTypeFilters,
+            (v) => setMedicalMemberTypeFilters((c) => toggleInList(c, v)),
+            () => setMedicalMemberTypeFilters([...memberTypeSelectOptions]),
+            () => setMedicalMemberTypeFilters([])
+          )}
+
+          {checkboxGroup(
+            "Squadra",
+            teamSelectOptions,
+            medicalTeamFilters,
+            (v) => setMedicalTeamFilters((c) => toggleInList(c, v)),
+            () => setMedicalTeamFilters([...teamSelectOptions]),
+            () => setMedicalTeamFilters([])
+          )}
+
+          <p className="text-sm text-slate-700">
+            {isLoading
+              ? "Caricamento volontari..."
+              : `${filteredMedicalVolunteers.length} soci attivi selezionati`}
+          </p>
+
+          <button
+            type="button"
+            disabled={
+              isGeneratingMedical || isLoading || filteredMedicalVolunteers.length === 0
+            }
+            onClick={() => void handleGenerateMedicalPdf()}
+            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isGeneratingMedical
+              ? "Generazione PDF..."
+              : "Genera PDF situazione visite mediche"}
+          </button>
+        </section>
+
         <section className="app-card rounded-xl p-4">
           <h2 className="text-lg font-semibold text-slate-900">Altri report</h2>
-          <p className="mt-1 text-sm text-slate-600">
-            Prossimi report PDF: scadenze visite mediche, corsi, cinofilo.
-          </p>
+          <p className="mt-1 text-sm text-slate-600">Prossimi report PDF: corsi, cinofilo.</p>
         </section>
       </div>
     </main>

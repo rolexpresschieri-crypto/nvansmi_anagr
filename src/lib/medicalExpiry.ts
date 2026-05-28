@@ -43,3 +43,13 @@ export function getMedicalExpiryStatus(expiryDate: string | null): MedicalExpiry
 export function isMedicalExpired(expiryDate: string | null): boolean {
   return getMedicalExpiryStatus(expiryDate) === "expired";
 }
+
+/** Giorni trascorsi dalla scadenza; null se non scaduta o senza data. */
+export function daysMedicalExpired(expiryDate: string | null): number | null {
+  if (!expiryDate || getMedicalExpiryStatus(expiryDate) !== "expired") return null;
+
+  const today = startOfDay(new Date());
+  const expiry = startOfDay(new Date(expiryDate));
+  const diffMs = today.getTime() - expiry.getTime();
+  return Math.floor(diffMs / (1000 * 60 * 60 * 24));
+}

@@ -31,7 +31,7 @@ export type VolunteerRecord = {
         microchip: string | null;
       }[]
     | null;
-  medical_checks?: { check_date: string }[] | null;
+  medical_checks?: { check_date: string; expiry_date?: string | null }[] | null;
 };
 
 export type VolunteerFormValues = {
@@ -63,7 +63,7 @@ export const VOLUNTEER_SELECT_FIELDS =
   "id, first_name, last_name, tax_code, phone, email, qualification, team, member_type, entry_date, exit_date, ansmi_office, nv_office, pc_insurance, ansmi_card_number, nv_card_number, residence_address, residence_zip, residence_city, residence_province, birth_place, birth_province, birth_date, dogs(id, name, breed, sex, microchip)";
 
 export const VOLUNTEER_EXPORT_SELECT_FIELDS =
-  "id, first_name, last_name, tax_code, phone, email, qualification, team, member_type, entry_date, exit_date, ansmi_office, nv_office, pc_insurance, ansmi_card_number, nv_card_number, residence_address, residence_zip, residence_city, residence_province, birth_place, birth_province, birth_date, medical_checks(check_date)";
+  "id, first_name, last_name, tax_code, phone, email, qualification, team, member_type, entry_date, exit_date, ansmi_office, nv_office, pc_insurance, ansmi_card_number, nv_card_number, residence_address, residence_zip, residence_city, residence_province, birth_place, birth_province, birth_date, medical_checks(check_date, expiry_date)";
 
 export const emptyVolunteerForm = (): VolunteerFormValues => ({
   first_name: "",

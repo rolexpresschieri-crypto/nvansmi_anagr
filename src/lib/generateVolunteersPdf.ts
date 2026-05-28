@@ -1,5 +1,6 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
+import { drawPdfLogo, formatPdfItDate, loadLogoDataUrl } from "@/lib/pdfReportUtils";
 import type { VolunteerRecord } from "@/lib/volunteerTypes";
 
 const REPORT_COLUMNS: { header: string; key: keyof VolunteerRecord | "extra" }[] = [
@@ -31,20 +32,13 @@ const REPORT_COLUMNS: { header: string; key: keyof VolunteerRecord | "extra" }[]
   { header: "DATA VISITA MEDICA", key: "extra" },
 ];
 
-function formatItDate(iso: string | null | undefined): string {
-  if (!iso) return "";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "";
-  return d.toLocaleDateString("it-IT");
-}
-
 function latestMedicalDate(volunteer: VolunteerRecord): string {
   const checks = volunteer.medical_checks ?? [];
   if (checks.length === 0) return "";
   const sorted = [...checks].sort(
     (a, b) => new Date(b.check_date).getTime() - new Date(a.check_date).getTime()
   );
-  return formatItDate(sorted[0].check_date);
+  return formatPdfItDate(sorted[0].check_date);
 }
 
 function cellValue(
@@ -57,7 +51,7 @@ function cellValue(
     const y = new Date(volunteer.birth_date).getFullYear();
     return Number.isNaN(y) ? "" : String(y);
   }
-  if (col.header === "DATA ODIERNA") return formatItDate(today.toISOString().slice(0, 10));
+  if (col.header === "DATA ODIERNA") return formatPdfItDate(today.toISOString().slice(0, 10));
   if (col.header === "ANNO") return String(today.getFullYear());
   if (col.header === "DATA VISITA MEDICA") return latestMedicalDate(volunteer);
 
@@ -66,24 +60,9 @@ function cellValue(
   const raw = volunteer[col.key as keyof VolunteerRecord];
   if (raw == null) return "";
   if (col.key === "entry_date" || col.key === "exit_date" || col.key === "birth_date") {
-    return formatItDate(String(raw));
+    return formatPdfItDate(String(raw));
   }
   return String(raw);
-}
-
-async function loadLogoDataUrl(): Promise<string | null> {
-  try {
-    const response = await fetch("/logo-nvansmi.png");
-    if (!response.ok) return null;
-    const blob = await response.blob();
-    return await new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(typeof reader.result === "string" ? reader.result : null);
-      reader.readAsDataURL(blob);
-    });
-  } catch {
-    return null;
-  }
 }
 
 export async function generateVolunteersPdf(
@@ -97,7 +76,6 @@ export async function generateVolunteersPdf(
   });
 
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
-  const pageWidth = doc.internal.pageSize.getWidth();
   const today = new Date();
 
   const logo = await loadLogoDataUrl();
@@ -108,10 +86,8 @@ export async function generateVolunteersPdf(
     doc.setFontSize(8);
     doc.setFont("helvetica", "normal");
     doc.text(filterSummary, 10, 17);
-    doc.text(`Generato: ${formatItDate(today.toISOString().slice(0, 10))}`, 10, 21);
-    if (logo) {
-      doc.addImage(logo, "PNG", pageWidth - 32, 5, 22, 22);
-    }
+    doc.text(`Generato: ${formatPdfItDate(today.toISOString().slice(0, 10))}`, 10, 21);
+    drawPdfLogo(doc, logo);
   };
 
   addHeader();
@@ -128,12 +104,7 @@ export async function generateVolunteersPdf(
     styles: { fontSize: 5.5, cellPadding: 1, overflow: "linebreak" },
     headStyles: { fillColor: [30, 64, 175], fontSize: 5.5 },
     margin: { left: 8, right: 8 },
-    didDrawPage: () => {
-      const logoOnPage = logo;
-      if (logoOnPage) {
-        doc.addImage(logoOnPage, "PNG", pageWidth - 32, 5, 22, 22);
-      }
-    },
+    didDrawPage: () => drawPdfLogo(doc, logo),
   });
 
   doc.save(`nvansmi_volontari_${today.toISOString().slice(0, 10)}.pdf`);
