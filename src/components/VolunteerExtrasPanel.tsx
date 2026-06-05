@@ -7,7 +7,13 @@ import {
   getMedicalExpiryStatus,
   medicalExpiryFromCheckDate,
 } from "@/lib/medicalExpiry";
-import { COURSE_DEFINITIONS, EQUIPMENT_DEFINITIONS } from "@/lib/volunteerCatalog";
+import {
+  COURSE_DEFINITIONS,
+  customCourseCodeFromName,
+  EQUIPMENT_DEFINITIONS,
+  isPredefinedCourseCode,
+  normalizeCourseName,
+} from "@/lib/volunteerCatalog";
 
 type DetailTab = "visite" | "corsi" | "dotazioni";
 
@@ -37,6 +43,14 @@ type EquipmentRow = {
   size_value: string | null;
 };
 
+type CustomCourseRow = {
+  key: string;
+  volunteerCourseId?: string;
+  courseId?: string;
+  name: string;
+  date: string;
+};
+
 type VolunteerExtrasPanelProps = {
   volunteerId: string;
   onError: (message: string | null) => void;
@@ -59,6 +73,7 @@ export default function VolunteerExtrasPanel({
 
   const [newMedicalDate, setNewMedicalDate] = useState("");
   const [courseDates, setCourseDates] = useState<Record<string, string>>({});
+  const [customCourses, setCustomCourses] = useState<CustomCourseRow[]>([]);
   const [equipmentSizes, setEquipmentSizes] = useState<Record<string, string>>({});
 
   const catalogByCode = useMemo(() => {
@@ -126,6 +141,20 @@ export default function VolunteerExtrasPanel({
       if (vc?.completion_date) dates[def.code] = vc.completion_date;
     }
     setCourseDates(dates);
+
+    const customRows: CustomCourseRow[] = [];
+    for (const vc of courseRows) {
+      const cat = catalogRows.find((c) => c.id === vc.course_id);
+      if (!cat || isPredefinedCourseCode(cat.code)) continue;
+      customRows.push({
+        key: vc.id,
+        volunteerCourseId: vc.id,
+        courseId: cat.id,
+        name: cat.name,
+        date: vc.completion_date ?? "",
+      });
+    }
+    setCustomCourses(customRows);
 
     const sizes: Record<string, string> = {};
     for (const def of EQUIPMENT_DEFINITIONS) {
@@ -223,8 +252,134 @@ export default function VolunteerExtrasPanel({
       }
     }
 
+    const keptVolunteerCourseIds = new Set<string>();
+    for (const row of customCourses) {
+      const courseName = normalizeCourseName(row.name);
+      const dateValue = row.date.trim();
+
+      if (!courseName && !dateValue) {
+        if (row.volunteerCourseId) {
+          const { error } = await supabase
+            .from("volunteer_courses")
+            .delete()
+            .eq("id", row.volunteerCourseId);
+          if (error) {
+            onError(error.message);
+            setIsSaving(false);
+            return;
+          }
+        }
+        continue;
+      }
+
+      if (!courseName || !dateValue) {
+        onError("Per i corsi manuali inserisci nome e data.");
+        setIsSaving(false);
+        return;
+      }
+
+      const courseCode = customCourseCodeFromName(courseName);
+      if (!courseCode) {
+        onError("Nome corso non valido.");
+        setIsSaving(false);
+        return;
+      }
+
+      const { data: catalogRow, error: catalogError } = await supabase
+        .from("course_catalog")
+        .upsert({ code: courseCode, name: courseName }, { onConflict: "code" })
+        .select("id")
+        .single();
+
+      if (catalogError || !catalogRow) {
+        onError(catalogError?.message ?? "Errore salvataggio catalogo corso.");
+        setIsSaving(false);
+        return;
+      }
+
+      const courseId = catalogRow.id as string;
+      const existing = row.volunteerCourseId
+        ? volunteerCourses.find((vc) => vc.id === row.volunteerCourseId)
+        : volunteerCourses.find((vc) => vc.course_id === courseId);
+
+      const { data: savedCourse, error: courseError } = existing
+        ? await supabase
+            .from("volunteer_courses")
+            .update({ completion_date: dateValue, passed: true })
+            .eq("id", existing.id)
+            .select("id")
+            .single()
+        : await supabase
+            .from("volunteer_courses")
+            .insert({
+              volunteer_id: volunteerId,
+              course_id: courseId,
+              completion_date: dateValue,
+              passed: true,
+            })
+            .select("id")
+            .single();
+
+      if (courseError || !savedCourse) {
+        onError(courseError?.message ?? "Errore salvataggio corso.");
+        setIsSaving(false);
+        return;
+      }
+
+      keptVolunteerCourseIds.add(savedCourse.id as string);
+    }
+
+    const customVolunteerCourseIds = volunteerCourses
+      .filter((vc) => {
+        const cat = catalog.find((c) => c.id === vc.course_id);
+        return cat && !isPredefinedCourseCode(cat.code);
+      })
+      .map((vc) => vc.id);
+
+    for (const id of customVolunteerCourseIds) {
+      if (!keptVolunteerCourseIds.has(id)) {
+        const stillInForm = customCourses.some((row) => row.volunteerCourseId === id);
+        if (!stillInForm) {
+          const { error } = await supabase.from("volunteer_courses").delete().eq("id", id);
+          if (error) {
+            onError(error.message);
+            setIsSaving(false);
+            return;
+          }
+        }
+      }
+    }
+
     await loadData();
     setIsSaving(false);
+  };
+
+  const handleAddCustomCourse = () => {
+    setCustomCourses((current) => [
+      ...current,
+      { key: `new-${Date.now()}`, name: "", date: "" },
+    ]);
+  };
+
+  const handleRemoveCustomCourse = (key: string) => {
+    setCustomCourses((current) => current.filter((row) => row.key !== key));
+  };
+
+  const handleCustomCourseChange = (
+    key: string,
+    field: "name" | "date",
+    value: string
+  ) => {
+    setCustomCourses((current) =>
+      current.map((row) =>
+        row.key === key
+          ? {
+              ...row,
+              [field]: field === "name" ? normalizeCourseName(value) : value,
+            }
+          : row
+      )
+    );
   };
 
   const handleSaveEquipment = async () => {
@@ -435,6 +590,73 @@ export default function VolunteerExtrasPanel({
               );
             })}
           </div>
+
+          <div className="space-y-3 rounded-md border border-dashed border-slate-300 bg-white/70 p-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-xs font-bold uppercase tracking-wide text-slate-700">
+                Altri corsi (inserimento manuale)
+              </p>
+              <button
+                type="button"
+                onClick={handleAddCustomCourse}
+                className="rounded-md border border-blue-300 bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-800 hover:bg-blue-100"
+              >
+                + Aggiungi corso
+              </button>
+            </div>
+            <p className="text-xs text-slate-600">
+              Nome corso in <strong>lettere maiuscole</strong> e data di completamento.
+            </p>
+
+            {customCourses.length === 0 ? (
+              <p className="text-sm text-slate-600">Nessun corso manuale aggiunto.</p>
+            ) : (
+              <div className="space-y-2">
+                {customCourses.map((row) => (
+                  <div
+                    key={row.key}
+                    className="grid gap-2 rounded-md border border-slate-200 bg-slate-50 p-2 md:grid-cols-[1fr_auto_auto]"
+                  >
+                    <label className="block">
+                      <span className="mb-1 block text-xs font-semibold text-slate-700">
+                        Nome corso
+                      </span>
+                      <input
+                        type="text"
+                        placeholder="ES. CORSO SPECIALE"
+                        value={row.name}
+                        onChange={(e) =>
+                          handleCustomCourseChange(row.key, "name", e.target.value)
+                        }
+                        className="w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm uppercase"
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="mb-1 block text-xs font-semibold text-slate-700">Data</span>
+                      <input
+                        type="date"
+                        value={row.date}
+                        onChange={(e) =>
+                          handleCustomCourseChange(row.key, "date", e.target.value)
+                        }
+                        className="w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+                      />
+                    </label>
+                    <div className="flex items-end">
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveCustomCourse(row.key)}
+                        className="rounded-md border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-50"
+                      >
+                        Rimuovi
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           <button
             type="button"
             disabled={isSaving}

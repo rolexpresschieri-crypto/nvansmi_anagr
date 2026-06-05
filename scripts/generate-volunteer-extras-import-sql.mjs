@@ -21,6 +21,7 @@ const COURSES = [
   { code: "CARTO_GPS", col: "CORSO CARTOGRAFIA & GPS" },
   { code: "ANPAS_OCN", col: "CORSO ANPAS OCN" },
   { code: "ANPAS_ODR", col: "CORSO ANPAS ODR" },
+  { code: "DAE", col: "CORSO DAE" },
 ];
 
 const EQUIPMENT = [

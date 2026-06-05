@@ -10,7 +10,8 @@ insert into public.course_catalog (code, name) values
   ('TLC_NV', 'CORSO TLC NV ANSMI'),
   ('CARTO_GPS', 'CORSO CARTOGRAFIA & GPS'),
   ('ANPAS_OCN', 'CORSO ANPAS OCN'),
-  ('ANPAS_ODR', 'CORSO ANPAS ODR')
+  ('ANPAS_ODR', 'CORSO ANPAS ODR'),
+  ('DAE', 'CORSO DAE')
 on conflict (code) do update set name = excluded.name;
 
 create unique index if not exists equipment_issues_volunteer_item_uidx

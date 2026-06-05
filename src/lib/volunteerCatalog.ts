@@ -42,7 +42,28 @@ export const COURSE_DEFINITIONS: CourseDefinition[] = [
   },
   { code: "ANPAS_OCN", name: "CORSO ANPAS OCN", csvColumn: "CORSO ANPAS OCN" },
   { code: "ANPAS_ODR", name: "CORSO ANPAS ODR", csvColumn: "CORSO ANPAS ODR" },
+  { code: "DAE", name: "CORSO DAE", csvColumn: "CORSO DAE" },
 ];
+
+export const PREDEFINED_COURSE_CODES = new Set(
+  COURSE_DEFINITIONS.map((course) => course.code)
+);
+
+export function normalizeCourseName(value: string): string {
+  return value.trim().toUpperCase().replace(/\s+/g, " ");
+}
+
+export function customCourseCodeFromName(name: string): string {
+  const normalized = normalizeCourseName(name)
+    .replace(/[^A-Z0-9]+/g, "_")
+    .replace(/^_|_$/g, "");
+  if (!normalized) return "";
+  return `MAN_${normalized}`.slice(0, 48);
+}
+
+export function isPredefinedCourseCode(code: string): boolean {
+  return PREDEFINED_COURSE_CODES.has(code);
+}
 
 export const EQUIPMENT_DEFINITIONS: EquipmentDefinition[] = [
   { code: "TSHIRT", label: "T-SHIRT", csvColumn: "T-SHIRT" },

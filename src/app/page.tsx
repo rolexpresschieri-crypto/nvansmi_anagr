@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
+import DogDetailCard from "@/components/DogDetailCard";
 import VolunteerExtendedFormFields from "@/components/VolunteerExtendedFormFields";
 import VolunteerExtrasPanel from "@/components/VolunteerExtrasPanel";
 import { supabase } from "@/lib/supabaseClient";
@@ -650,18 +651,7 @@ export default function Home() {
                       </p>
                     ) : (
                       (selectedVolunteer.dogs ?? []).map((dog) => (
-                        <div
-                          key={dog.id}
-                          className="rounded-md border border-slate-200 bg-slate-50 p-3"
-                        >
-                          <p className="font-medium text-slate-900">
-                            {dog.name ?? "SENZA NOME"}
-                          </p>
-                          <p className="text-sm text-slate-700">
-                            Razza: {dog.breed ?? "-"} | Sesso: {dog.sex ?? "-"} |
-                            Microchip: {dog.microchip ?? "-"}
-                          </p>
-                        </div>
+                        <DogDetailCard key={dog.id} dog={dog} />
                       ))
                     )}
                   </div>
