@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
+import DogBrevettiEditor from "@/components/DogBrevettiEditor";
 import DogDetailCard from "@/components/DogDetailCard";
 import VolunteerExtendedFormFields from "@/components/VolunteerExtendedFormFields";
 import VolunteerExtrasPanel from "@/components/VolunteerExtrasPanel";
@@ -50,6 +51,8 @@ export default function Home() {
   const [volunteerForm, setVolunteerForm] = useState<VolunteerFormValues>(
     emptyVolunteerForm
   );
+  const [editingDogId, setEditingDogId] = useState<string | null>(null);
+  const [isAddingDog, setIsAddingDog] = useState(false);
   const editorRef = useRef<HTMLElement | null>(null);
   const memberTypeInitializedRef = useRef(false);
   const teamInitializedRef = useRef(false);
@@ -317,6 +320,17 @@ export default function Home() {
     if (!isEditorOpen) return;
     editorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [isEditorOpen]);
+
+  useEffect(() => {
+    setEditingDogId(null);
+    setIsAddingDog(false);
+  }, [selectedVolunteerId]);
+
+  const handleDogSaved = async () => {
+    setEditingDogId(null);
+    setIsAddingDog(false);
+    await loadVolunteersForSession(session);
+  };
 
   if (isBootLoading) {
     return (
@@ -643,16 +657,56 @@ export default function Home() {
                 </div>
 
                 <section>
-                  <h3 className="text-lg font-semibold text-slate-900">Cani</h3>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h3 className="text-lg font-semibold text-slate-900">Cani</h3>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsAddingDog(true);
+                        setEditingDogId(null);
+                      }}
+                      className="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-blue-700"
+                    >
+                      + NUOVO CANE
+                    </button>
+                  </div>
                   <div className="mt-2 space-y-2">
-                    {(selectedVolunteer.dogs ?? []).length === 0 ? (
+                    {isAddingDog ? (
+                      <DogBrevettiEditor
+                        dog={null}
+                        volunteerId={selectedVolunteer.id}
+                        onSaved={() => void handleDogSaved()}
+                        onCancel={() => setIsAddingDog(false)}
+                        onError={setErrorMessage}
+                      />
+                    ) : null}
+
+                    {(selectedVolunteer.dogs ?? []).length === 0 && !isAddingDog ? (
                       <p className="text-sm text-slate-600">
-                        Nessun cane associato.
+                        Nessun cane associato. Usa <strong>+ NUOVO CANE</strong> per aggiungerne uno.
                       </p>
-                    ) : (
-                      (selectedVolunteer.dogs ?? []).map((dog) => (
-                        <DogDetailCard key={dog.id} dog={dog} />
-                      ))
+                    ) : null}
+
+                    {(selectedVolunteer.dogs ?? []).map((dog) =>
+                      editingDogId === dog.id ? (
+                        <DogBrevettiEditor
+                          key={dog.id}
+                          dog={dog}
+                          volunteerId={selectedVolunteer.id}
+                          onSaved={() => void handleDogSaved()}
+                          onCancel={() => setEditingDogId(null)}
+                          onError={setErrorMessage}
+                        />
+                      ) : (
+                        <DogDetailCard
+                          key={dog.id}
+                          dog={dog}
+                          onEdit={() => {
+                            setEditingDogId(dog.id);
+                            setIsAddingDog(false);
+                          }}
+                        />
+                      )
                     )}
                   </div>
                 </section>

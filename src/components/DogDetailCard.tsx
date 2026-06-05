@@ -27,9 +27,10 @@ function FieldGrid({ title, fields }: { title: string; fields: FieldItem[] }) {
 
 type Props = {
   dog: DogRecord;
+  onEdit?: () => void;
 };
 
-export default function DogDetailCard({ dog }: Props) {
+export default function DogDetailCard({ dog, onEdit }: Props) {
   const hasBrevetti =
     collectFields([
       { label: "Libretto ENCI", value: dog.enci_booklet_number ?? "" },
@@ -41,7 +42,18 @@ export default function DogDetailCard({ dog }: Props) {
 
   return (
     <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
-      <p className="font-medium text-slate-900">{dog.name ?? "SENZA NOME"}</p>
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <p className="font-medium text-slate-900">{dog.name ?? "SENZA NOME"}</p>
+        {onEdit ? (
+          <button
+            type="button"
+            onClick={onEdit}
+            className="rounded-md border border-blue-300 bg-blue-50 px-2 py-1 text-xs font-bold text-blue-800 hover:bg-blue-100"
+          >
+            MODIFICA BREVETTI
+          </button>
+        ) : null}
+      </div>
       <p className="mt-1 text-sm text-slate-700">
         Razza: {dog.breed ?? "-"} | Sesso: {dog.sex ?? "-"} | Microchip:{" "}
         {dog.microchip ?? "-"}
@@ -118,10 +130,10 @@ export default function DogDetailCard({ dog }: Props) {
         ]}
       />
 
-      {!hasBrevetti ? (
-        <p className="mt-3 text-xs text-amber-800">
-          Brevetti non ancora caricati: esegui <code>k9_schema_update.sql</code> e poi{" "}
-          <code>import_k9_from_csv.sql</code> su Supabase.
+      {!hasBrevetti && onEdit ? (
+        <p className="mt-3 text-xs text-slate-600">
+          Nessun brevetto registrato. Usa <strong>MODIFICA BREVETTI</strong> per inserire numeri e
+          date.
         </p>
       ) : null}
     </div>
