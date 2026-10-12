@@ -3,33 +3,34 @@ import autoTable from "jspdf-autotable";
 import { drawPdfLogo, formatPdfItDate, loadLogoDataUrl } from "@/lib/pdfReportUtils";
 import type { VolunteerRecord } from "@/lib/volunteerTypes";
 
-const REPORT_COLUMNS: { header: string; key: keyof VolunteerRecord | "extra" }[] = [
-  { header: "DATA\nENTRATA", key: "entry_date" },
-  { header: "DATA\nUSCITA", key: "exit_date" },
+const REPORT_COLUMNS: {
+  header: string;
+  key: keyof VolunteerRecord | "extra";
+  align?: "center";
+}[] = [
+  { header: "DATA\nENTRATA", key: "entry_date", align: "center" },
+  { header: "DATA\nUSCITA", key: "exit_date", align: "center" },
   { header: "SEDE\nANSMI", key: "ansmi_office" },
   { header: "SEDE\nNV", key: "nv_office" },
   { header: "SQUADRA", key: "team" },
-  { header: "TIPO\nSOCIO", key: "member_type" },
+  { header: "TIPO\nSOCIO", key: "member_type", align: "center" },
   { header: "QUALIFICA", key: "qualification" },
   { header: "COGNOME", key: "last_name" },
   { header: "NOME", key: "first_name" },
-  { header: "ASSIC.\nPC", key: "pc_insurance" },
-  { header: "N°\nTESS.\nANSMI", key: "ansmi_card_number" },
-  { header: "N°\nTESS.\nNV", key: "nv_card_number" },
+  { header: "ASSIC.\nPC", key: "pc_insurance", align: "center" },
+  { header: "N°\nTESS.\nANSMI", key: "ansmi_card_number", align: "center" },
+  { header: "N°\nTESS.\nNV", key: "nv_card_number", align: "center" },
   { header: "RESIDENZA", key: "residence_address" },
-  { header: "CAP", key: "residence_zip" },
+  { header: "CAP", key: "residence_zip", align: "center" },
   { header: "CITTÀ", key: "residence_city" },
-  { header: "PROV", key: "residence_province" },
+  { header: "PROV", key: "residence_province", align: "center" },
   { header: "COD.\nFISCALE", key: "tax_code" },
-  { header: "CELLULARE", key: "phone" },
+  { header: "CELLULARE", key: "phone", align: "center" },
   { header: "MAIL", key: "email" },
   { header: "LUOGO\nNASCITA", key: "birth_place" },
-  { header: "PROV\nNASC.", key: "birth_province" },
-  { header: "DATA\nNASCITA", key: "birth_date" },
-  { header: "ANNO\nNASCITA", key: "extra" },
-  { header: "DATA\nODIERNA", key: "extra" },
-  { header: "ANNO", key: "extra" },
-  { header: "DATA\nVISITA\nMEDICA", key: "extra" },
+  { header: "PROV\nNASC.", key: "birth_province", align: "center" },
+  { header: "DATA\nNASCITA", key: "birth_date", align: "center" },
+  { header: "DATA\nVISITA\nMEDICA", key: "extra", align: "center" },
 ];
 
 /** Chiave numerica della data di entrata (YYYY-MM-DD o GG/MM/AAAA). Senza data va in fondo. */
@@ -54,16 +55,8 @@ function latestMedicalDate(volunteer: VolunteerRecord): string {
 
 function cellValue(
   volunteer: VolunteerRecord,
-  col: (typeof REPORT_COLUMNS)[number],
-  today: Date
+  col: (typeof REPORT_COLUMNS)[number]
 ): string {
-  if (col.header === "ANNO\nNASCITA") {
-    if (!volunteer.birth_date) return "";
-    const y = new Date(volunteer.birth_date).getFullYear();
-    return Number.isNaN(y) ? "" : String(y);
-  }
-  if (col.header === "DATA\nODIERNA") return formatPdfItDate(today.toISOString().slice(0, 10));
-  if (col.header === "ANNO") return String(today.getFullYear());
   if (col.header === "DATA\nVISITA\nMEDICA") return latestMedicalDate(volunteer);
 
   if (col.key === "extra") return "";
@@ -95,9 +88,6 @@ const FIXED_WIDTH_HEADERS = new Set([
   "PROV",
   "PROV\nNASC.",
   "DATA\nNASCITA",
-  "ANNO\nNASCITA",
-  "DATA\nODIERNA",
-  "ANNO",
   "DATA\nVISITA\nMEDICA",
 ]);
 
@@ -179,7 +169,7 @@ export async function generateVolunteersPdf(
 
   const head = [REPORT_COLUMNS.map((c) => c.header)];
   const body = sorted.map((volunteer) =>
-    REPORT_COLUMNS.map((col) => cellValue(volunteer, col, today))
+    REPORT_COLUMNS.map((col) => cellValue(volunteer, col))
   );
 
   const usable = doc.internal.pageSize.getWidth() - SIDE_MARGIN * 2;
@@ -195,9 +185,16 @@ export async function generateVolunteersPdf(
   }
   widths = fillPageWidth(widths, usable);
 
-  const columnStyles: Record<number, { cellWidth: number; overflow: "hidden" }> = {};
+  const columnStyles: Record<
+    number,
+    { cellWidth: number; overflow: "hidden"; halign?: "center" }
+  > = {};
   widths.forEach((width, index) => {
-    columnStyles[index] = { cellWidth: width, overflow: "hidden" };
+    columnStyles[index] = {
+      cellWidth: width,
+      overflow: "hidden",
+      halign: REPORT_COLUMNS[index].align,
+    };
   });
 
   autoTable(doc, {
