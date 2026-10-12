@@ -76,6 +76,60 @@ function cellValue(
   return String(raw);
 }
 
+const SIDE_MARGIN = 6;
+/** Il logo è alto 22 mm a partire da y=5: la tabella deve iniziare sotto, su ogni pagina. */
+const TABLE_TOP = 34;
+const CELL_PADDING = 0.4;
+const CELL_SLACK = 0.8;
+const FONT_CANDIDATES = [6, 5.6, 5.2, 4.8, 4.4, 4, 3.6, 3.3, 3, 2.7];
+
+/** Colonne corte: restano larghe quanto il testo, così date e codici non vanno a capo. */
+const FIXED_WIDTH_HEADERS = new Set([
+  "DATA ENTRATA",
+  "DATA USCITA",
+  "TIPO SOCIO",
+  "CAP",
+  "PROV",
+  "PROV NASCITA",
+  "DATA NASCITA",
+  "ANNO NASCITA",
+  "DATA ODIERNA",
+  "ANNO",
+  "DATA VISITA MEDICA",
+]);
+
+function textWidth(doc: jsPDF, text: string, fontSize: number, bold: boolean): number {
+  doc.setFont("helvetica", bold ? "bold" : "normal");
+  doc.setFontSize(fontSize);
+  return doc.getTextWidth(text) + CELL_PADDING * 2 + CELL_SLACK;
+}
+
+function naturalColumnWidths(doc: jsPDF, body: string[][], fontSize: number): number[] {
+  const widths = REPORT_COLUMNS.map((col) => textWidth(doc, col.header, fontSize, true));
+  for (const row of body) {
+    row.forEach((text, index) => {
+      widths[index] = Math.max(widths[index], textWidth(doc, text || "", fontSize, false));
+    });
+  }
+  return widths;
+}
+
+function fitColumnWidths(natural: number[], usable: number): number[] {
+  const total = natural.reduce((sum, width) => sum + width, 0);
+  if (total <= usable) return natural;
+
+  const fixed = REPORT_COLUMNS.map((col) => FIXED_WIDTH_HEADERS.has(col.header));
+  const fixedSum = natural.reduce((sum, width, index) => sum + (fixed[index] ? width : 0), 0);
+  const flexSum = total - fixedSum;
+  const room = usable - fixedSum;
+  if (room > 0 && flexSum > 0) {
+    return natural.map((width, index) => (fixed[index] ? width : (width * room) / flexSum));
+  }
+
+  const scale = usable / total;
+  return natural.map((width) => width * scale);
+}
+
 export async function generateVolunteersPdf(
   volunteers: VolunteerRecord[],
   filterSummary: string
@@ -114,13 +168,43 @@ export async function generateVolunteersPdf(
     REPORT_COLUMNS.map((col) => cellValue(volunteer, col, today))
   );
 
+  const usable = doc.internal.pageSize.getWidth() - SIDE_MARGIN * 2;
+  let fontSize = FONT_CANDIDATES[FONT_CANDIDATES.length - 1];
+  let widths = fitColumnWidths(naturalColumnWidths(doc, body, fontSize), usable);
+  for (const size of FONT_CANDIDATES) {
+    const natural = naturalColumnWidths(doc, body, size);
+    if (natural.reduce((sum, width) => sum + width, 0) <= usable) {
+      fontSize = size;
+      widths = natural;
+      break;
+    }
+  }
+
+  const columnStyles: Record<number, { cellWidth: number; overflow: "hidden" }> = {};
+  widths.forEach((width, index) => {
+    columnStyles[index] = { cellWidth: width, overflow: "hidden" };
+  });
+
   autoTable(doc, {
-    startY: 32,
+    startY: TABLE_TOP,
     head,
     body,
-    styles: { fontSize: 5.5, cellPadding: 1, overflow: "linebreak" },
-    headStyles: { fillColor: [30, 64, 175], fontSize: 5.5 },
-    margin: { left: 8, right: 8 },
+    styles: {
+      fontSize,
+      cellPadding: CELL_PADDING,
+      overflow: "hidden",
+      valign: "middle",
+    },
+    headStyles: {
+      fillColor: [30, 64, 175],
+      fontSize,
+      overflow: "hidden",
+      halign: "center",
+      valign: "middle",
+    },
+    columnStyles,
+    tableWidth: widths.reduce((sum, width) => sum + width, 0),
+    margin: { left: SIDE_MARGIN, right: SIDE_MARGIN, top: TABLE_TOP },
     didDrawPage: () => drawPdfLogo(doc, logo),
   });
 
