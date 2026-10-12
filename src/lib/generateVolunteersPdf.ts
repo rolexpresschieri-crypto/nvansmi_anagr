@@ -32,6 +32,17 @@ const REPORT_COLUMNS: { header: string; key: keyof VolunteerRecord | "extra" }[]
   { header: "DATA VISITA MEDICA", key: "extra" },
 ];
 
+/** Chiave numerica della data di entrata (YYYY-MM-DD o GG/MM/AAAA). Senza data va in fondo. */
+function entryDateKey(value: string | null | undefined): number {
+  if (!value) return Number.POSITIVE_INFINITY;
+  const iso = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
+  if (iso) return Date.UTC(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3]));
+  const it = /^(\d{2})\/(\d{2})\/(\d{4})/.exec(value);
+  if (it) return Date.UTC(Number(it[3]), Number(it[2]) - 1, Number(it[1]));
+  const parsed = Date.parse(value);
+  return Number.isNaN(parsed) ? Number.POSITIVE_INFINITY : parsed;
+}
+
 function latestMedicalDate(volunteer: VolunteerRecord): string {
   const checks = volunteer.medical_checks ?? [];
   if (checks.length === 0) return "";
@@ -70,6 +81,8 @@ export async function generateVolunteersPdf(
   filterSummary: string
 ): Promise<void> {
   const sorted = [...volunteers].sort((a, b) => {
+    const byEntry = entryDateKey(a.entry_date) - entryDateKey(b.entry_date);
+    if (Number.isFinite(byEntry) && byEntry !== 0) return byEntry;
     const byLast = a.last_name.localeCompare(b.last_name, "it");
     if (byLast !== 0) return byLast;
     return a.first_name.localeCompare(b.first_name, "it");
@@ -86,7 +99,11 @@ export async function generateVolunteersPdf(
     doc.setFontSize(8);
     doc.setFont("helvetica", "normal");
     doc.text(filterSummary, 10, 17);
-    doc.text(`Generato: ${formatPdfItDate(today.toISOString().slice(0, 10))}`, 10, 21);
+    doc.text(
+      `Generato: ${formatPdfItDate(today.toISOString().slice(0, 10))} · Ordine: data di entrata, dalla più vecchia`,
+      10,
+      21
+    );
     drawPdfLogo(doc, logo);
   };
 
