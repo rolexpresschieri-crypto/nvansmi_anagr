@@ -30,6 +30,7 @@ const REPORT_COLUMNS: {
   { header: "LUOGO\nNASCITA", key: "birth_place" },
   { header: "PROV\nNASC.", key: "birth_province", align: "center" },
   { header: "DATA\nNASCITA", key: "birth_date", align: "center" },
+  { header: "ETÀ", key: "extra", align: "center" },
   { header: "DATA\nVISITA\nMEDICA", key: "extra", align: "center" },
 ];
 
@@ -53,10 +54,27 @@ function latestMedicalDate(volunteer: VolunteerRecord): string {
   return formatPdfItDate(sorted[0].check_date);
 }
 
+function ageYears(birthDate: string | null | undefined, today: Date): string {
+  if (!birthDate) return "";
+  const iso = /^(\d{4})-(\d{2})-(\d{2})/.exec(birthDate);
+  if (!iso) return "";
+  const year = Number(iso[1]);
+  const month = Number(iso[2]);
+  const day = Number(iso[3]);
+  let age = today.getFullYear() - year;
+  const todayMonth = today.getMonth() + 1;
+  const todayDay = today.getDate();
+  if (todayMonth < month || (todayMonth === month && todayDay < day)) age -= 1;
+  if (!Number.isFinite(age) || age < 0) return "";
+  return String(age);
+}
+
 function cellValue(
   volunteer: VolunteerRecord,
-  col: (typeof REPORT_COLUMNS)[number]
+  col: (typeof REPORT_COLUMNS)[number],
+  today: Date
 ): string {
+  if (col.header === "ETÀ") return ageYears(volunteer.birth_date, today);
   if (col.header === "DATA\nVISITA\nMEDICA") return latestMedicalDate(volunteer);
 
   if (col.key === "extra") return "";
@@ -88,6 +106,7 @@ const FIXED_WIDTH_HEADERS = new Set([
   "PROV",
   "PROV\nNASC.",
   "DATA\nNASCITA",
+  "ETÀ",
   "DATA\nVISITA\nMEDICA",
 ]);
 
@@ -169,7 +188,7 @@ export async function generateVolunteersPdf(
 
   const head = [REPORT_COLUMNS.map((c) => c.header)];
   const body = sorted.map((volunteer) =>
-    REPORT_COLUMNS.map((col) => cellValue(volunteer, col))
+    REPORT_COLUMNS.map((col) => cellValue(volunteer, col, today))
   );
 
   const usable = doc.internal.pageSize.getWidth() - SIDE_MARGIN * 2;
