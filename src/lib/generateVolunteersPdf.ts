@@ -4,32 +4,32 @@ import { drawPdfLogo, formatPdfItDate, loadLogoDataUrl } from "@/lib/pdfReportUt
 import type { VolunteerRecord } from "@/lib/volunteerTypes";
 
 const REPORT_COLUMNS: { header: string; key: keyof VolunteerRecord | "extra" }[] = [
-  { header: "DATA ENTRATA", key: "entry_date" },
-  { header: "DATA USCITA", key: "exit_date" },
-  { header: "SEDE ANSMI", key: "ansmi_office" },
-  { header: "SEDE NV ANSMI", key: "nv_office" },
+  { header: "DATA\nENTRATA", key: "entry_date" },
+  { header: "DATA\nUSCITA", key: "exit_date" },
+  { header: "SEDE\nANSMI", key: "ansmi_office" },
+  { header: "SEDE\nNV", key: "nv_office" },
   { header: "SQUADRA", key: "team" },
-  { header: "TIPO SOCIO", key: "member_type" },
+  { header: "TIPO\nSOCIO", key: "member_type" },
   { header: "QUALIFICA", key: "qualification" },
   { header: "COGNOME", key: "last_name" },
   { header: "NOME", key: "first_name" },
-  { header: "ASSICURAZIONE PC", key: "pc_insurance" },
-  { header: "N° TESSERA ANSMI", key: "ansmi_card_number" },
-  { header: "N° TESSERA NV ANSMI", key: "nv_card_number" },
+  { header: "ASSIC.\nPC", key: "pc_insurance" },
+  { header: "N°\nTESS.\nANSMI", key: "ansmi_card_number" },
+  { header: "N°\nTESS.\nNV", key: "nv_card_number" },
   { header: "RESIDENZA", key: "residence_address" },
   { header: "CAP", key: "residence_zip" },
   { header: "CITTÀ", key: "residence_city" },
   { header: "PROV", key: "residence_province" },
-  { header: "COD. FISCALE", key: "tax_code" },
+  { header: "COD.\nFISCALE", key: "tax_code" },
   { header: "CELLULARE", key: "phone" },
   { header: "MAIL", key: "email" },
-  { header: "LUOGO DI NASCITA", key: "birth_place" },
-  { header: "PROV NASCITA", key: "birth_province" },
-  { header: "DATA NASCITA", key: "birth_date" },
-  { header: "ANNO NASCITA", key: "extra" },
-  { header: "DATA ODIERNA", key: "extra" },
+  { header: "LUOGO\nNASCITA", key: "birth_place" },
+  { header: "PROV\nNASC.", key: "birth_province" },
+  { header: "DATA\nNASCITA", key: "birth_date" },
+  { header: "ANNO\nNASCITA", key: "extra" },
+  { header: "DATA\nODIERNA", key: "extra" },
   { header: "ANNO", key: "extra" },
-  { header: "DATA VISITA MEDICA", key: "extra" },
+  { header: "DATA\nVISITA\nMEDICA", key: "extra" },
 ];
 
 /** Chiave numerica della data di entrata (YYYY-MM-DD o GG/MM/AAAA). Senza data va in fondo. */
@@ -57,14 +57,14 @@ function cellValue(
   col: (typeof REPORT_COLUMNS)[number],
   today: Date
 ): string {
-  if (col.header === "ANNO NASCITA") {
+  if (col.header === "ANNO\nNASCITA") {
     if (!volunteer.birth_date) return "";
     const y = new Date(volunteer.birth_date).getFullYear();
     return Number.isNaN(y) ? "" : String(y);
   }
-  if (col.header === "DATA ODIERNA") return formatPdfItDate(today.toISOString().slice(0, 10));
+  if (col.header === "DATA\nODIERNA") return formatPdfItDate(today.toISOString().slice(0, 10));
   if (col.header === "ANNO") return String(today.getFullYear());
-  if (col.header === "DATA VISITA MEDICA") return latestMedicalDate(volunteer);
+  if (col.header === "DATA\nVISITA\nMEDICA") return latestMedicalDate(volunteer);
 
   if (col.key === "extra") return "";
 
@@ -81,27 +81,34 @@ const SIDE_MARGIN = 6;
 const TABLE_TOP = 34;
 const CELL_PADDING = 0.4;
 const CELL_SLACK = 0.8;
-const FONT_CANDIDATES = [6, 5.6, 5.2, 4.8, 4.4, 4, 3.6, 3.3, 3, 2.7];
+const FONT_CANDIDATES = [9, 8.5, 8, 7.5, 7, 6.5, 6, 5.5, 5, 4.5, 4, 3.6];
 
 /** Colonne corte: restano larghe quanto il testo, così date e codici non vanno a capo. */
 const FIXED_WIDTH_HEADERS = new Set([
-  "DATA ENTRATA",
-  "DATA USCITA",
-  "TIPO SOCIO",
+  "DATA\nENTRATA",
+  "DATA\nUSCITA",
+  "TIPO\nSOCIO",
+  "ASSIC.\nPC",
+  "N°\nTESS.\nANSMI",
+  "N°\nTESS.\nNV",
   "CAP",
   "PROV",
-  "PROV NASCITA",
-  "DATA NASCITA",
-  "ANNO NASCITA",
-  "DATA ODIERNA",
+  "PROV\nNASC.",
+  "DATA\nNASCITA",
+  "ANNO\nNASCITA",
+  "DATA\nODIERNA",
   "ANNO",
-  "DATA VISITA MEDICA",
+  "DATA\nVISITA\nMEDICA",
 ]);
 
 function textWidth(doc: jsPDF, text: string, fontSize: number, bold: boolean): number {
   doc.setFont("helvetica", bold ? "bold" : "normal");
   doc.setFontSize(fontSize);
-  return doc.getTextWidth(text) + CELL_PADDING * 2 + CELL_SLACK;
+  let widest = 0;
+  for (const line of text.split("\n")) {
+    widest = Math.max(widest, doc.getTextWidth(line));
+  }
+  return widest + CELL_PADDING * 2 + CELL_SLACK;
 }
 
 function naturalColumnWidths(doc: jsPDF, body: string[][], fontSize: number): number[] {
@@ -128,6 +135,13 @@ function fitColumnWidths(natural: number[], usable: number): number[] {
 
   const scale = usable / total;
   return natural.map((width) => width * scale);
+}
+
+function fillPageWidth(widths: number[], usable: number): number[] {
+  const total = widths.reduce((sum, width) => sum + width, 0);
+  if (total <= 0 || total >= usable - 0.5) return widths;
+  const extra = usable - total;
+  return widths.map((width) => width + (extra * width) / total);
 }
 
 export async function generateVolunteersPdf(
@@ -179,6 +193,7 @@ export async function generateVolunteersPdf(
       break;
     }
   }
+  widths = fillPageWidth(widths, usable);
 
   const columnStyles: Record<number, { cellWidth: number; overflow: "hidden" }> = {};
   widths.forEach((width, index) => {
@@ -198,7 +213,7 @@ export async function generateVolunteersPdf(
     headStyles: {
       fillColor: [30, 64, 175],
       fontSize,
-      overflow: "hidden",
+      overflow: "linebreak",
       halign: "center",
       valign: "middle",
     },
