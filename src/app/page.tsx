@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
@@ -378,12 +379,24 @@ export default function Home() {
     return (
       <main className="min-h-screen p-6">
         <div className="app-card mx-auto w-full max-w-md rounded-xl p-6">
-          <h1 className="text-2xl font-semibold text-slate-900">
-            NV ANSMI - Accesso
-          </h1>
-          <p className="mt-2 text-sm text-slate-600">
-            Accedi con email e password per gestire l&apos;anagrafica volontari.
-          </p>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h1 className="text-2xl font-semibold text-slate-900">
+                NV ANSMI - Accesso
+              </h1>
+              <p className="mt-2 text-sm text-slate-600">
+                Accedi con email e password per gestire l&apos;anagrafica volontari.
+              </p>
+            </div>
+            <Image
+              src="/logo-nvansmi.png"
+              alt="NV ANSMI"
+              width={64}
+              height={64}
+              className="h-16 w-16 shrink-0 object-contain"
+              priority
+            />
+          </div>
 
           <form onSubmit={handleSignIn} className="mt-6 space-y-4">
             <label className="block">
@@ -435,121 +448,131 @@ export default function Home() {
   return (
     <main className="min-h-screen p-6">
       <div className="mx-auto max-w-6xl space-y-4">
-        <header className="app-card flex flex-wrap items-center justify-between gap-3 rounded-xl p-4">
-          <div className="space-y-2">
+        <header className="app-card space-y-3 rounded-xl p-4">
+          <div className="flex items-start justify-between gap-3">
             <div>
-            <h1 className="text-xl font-semibold text-slate-900">
-              NV ANSMI - Anagrafica Volontari
-            </h1>
-            <p className="text-sm text-slate-600">{session.user.email}</p>
+              <h1 className="text-xl font-semibold text-slate-900">
+                NV ANSMI - Anagrafica Volontari
+              </h1>
+              <p className="text-sm text-slate-600">{session.user.email}</p>
             </div>
-            <div className="flex flex-wrap gap-3">
-              <select
-                value={uiPreset}
-                onChange={(event) =>
-                  setUiPreset(event.target.value as "chiara" | "istituzionale")
-                }
-                className="rounded-md border border-slate-300 px-2 py-1 text-sm font-semibold text-slate-700 outline-none focus:border-blue-500"
-              >
-                <option value="chiara">STILE: CHIARA</option>
-                <option value="istituzionale">STILE: ISTITUZIONALE</option>
-              </select>
-
-              <Link
-                href="/export"
-                className="inline-flex items-center rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-bold text-amber-800 hover:bg-amber-100"
-              >
-                EXPORT / REPORT
-              </Link>
-
-              <select
-                value={socioFilter}
-                onChange={(event) =>
-                  setSocioFilter(
-                    event.target.value as "tutti" | "attivi" | "non_attivi"
-                  )
-                }
-                className="rounded-md border border-slate-300 px-2 py-1 text-sm font-bold text-slate-800 outline-none focus:border-blue-500"
-              >
-                <option value="attivi">SOCI ATTIVI</option>
-                <option value="non_attivi">SOCI NON ATTIVI</option>
-                <option value="tutti">TUTTI I SOCI</option>
-              </select>
-
-              <div className="rounded-md border border-indigo-300 bg-indigo-50 px-3 py-2">
-                <p className="mb-1 text-xs font-bold tracking-wide text-indigo-700">
-                  TIPO SOCIO (MULTI)
-                </p>
-                <div className="flex flex-wrap gap-x-3 gap-y-1">
-                  {memberTypeOptions.map((value) => (
-                    <label
-                      key={value}
-                      className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-900"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={memberTypeFilters.includes(value)}
-                        onChange={() => toggleMemberType(value)}
-                        className="h-3.5 w-3.5 accent-indigo-600"
-                      />
-                      {value}
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              <div className="rounded-md border border-sky-300 bg-sky-50 px-3 py-2">
-                <p className="mb-1 text-xs font-bold tracking-wide text-sky-700">
-                  STATO OPERATIVO (MULTI)
-                </p>
-                <div className="flex flex-wrap gap-x-3 gap-y-1">
-                  {operationalStatusSelectOptions.map((value) => (
-                    <label
-                      key={value}
-                      className="inline-flex items-center gap-1 text-xs font-semibold text-sky-900"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={operationalStatusFilters.includes(value)}
-                        onChange={() => toggleOperationalStatus(value)}
-                        className="h-3.5 w-3.5 accent-sky-600"
-                      />
-                      {value}
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              <div className="rounded-md border border-emerald-300 bg-emerald-50 px-3 py-2">
-                <p className="mb-1 text-xs font-bold tracking-wide text-emerald-700">
-                  SQUADRA (MULTI)
-                </p>
-                <div className="flex flex-wrap gap-x-3 gap-y-1">
-                  {teamOptions.map((value) => (
-                    <label
-                      key={value}
-                      className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-900"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={teamFilters.includes(value)}
-                        onChange={() => toggleTeam(value)}
-                        className="h-3.5 w-3.5 accent-emerald-600"
-                      />
-                      {value}
-                    </label>
-                  ))}
-                </div>
-              </div>
-            </div>
+            <Image
+              src="/logo-nvansmi.png"
+              alt="NV ANSMI"
+              width={64}
+              height={64}
+              className="h-16 w-16 shrink-0 object-contain"
+              priority
+            />
           </div>
-          <button
-            type="button"
-            onClick={handleSignOut}
-            className="rounded-md border border-red-700 bg-red-600 px-3 py-2 text-sm font-bold text-white hover:bg-red-700"
-          >
-            Esci
-          </button>
+
+          <div className="flex flex-wrap items-end gap-3">
+            <select
+              value={uiPreset}
+              onChange={(event) =>
+                setUiPreset(event.target.value as "chiara" | "istituzionale")
+              }
+              className="rounded-md border border-slate-300 px-2 py-1 text-sm font-semibold text-slate-700 outline-none focus:border-blue-500"
+            >
+              <option value="chiara">STILE: CHIARA</option>
+              <option value="istituzionale">STILE: ISTITUZIONALE</option>
+            </select>
+
+            <Link
+              href="/export"
+              className="inline-flex items-center rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-bold text-amber-800 hover:bg-amber-100"
+            >
+              EXPORT / REPORT
+            </Link>
+
+            <select
+              value={socioFilter}
+              onChange={(event) =>
+                setSocioFilter(
+                  event.target.value as "tutti" | "attivi" | "non_attivi"
+                )
+              }
+              className="rounded-md border border-slate-300 px-2 py-1 text-sm font-bold text-slate-800 outline-none focus:border-blue-500"
+            >
+              <option value="attivi">SOCI ATTIVI</option>
+              <option value="non_attivi">SOCI NON ATTIVI</option>
+              <option value="tutti">TUTTI I SOCI</option>
+            </select>
+
+            <div className="rounded-md border border-indigo-300 bg-indigo-50 px-3 py-2">
+              <p className="mb-1 text-xs font-bold tracking-wide text-indigo-700">
+                TIPO SOCIO (MULTI)
+              </p>
+              <div className="flex flex-wrap gap-x-3 gap-y-1">
+                {memberTypeOptions.map((value) => (
+                  <label
+                    key={value}
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-900"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={memberTypeFilters.includes(value)}
+                      onChange={() => toggleMemberType(value)}
+                      className="h-3.5 w-3.5 accent-indigo-600"
+                    />
+                    {value}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-md border border-sky-300 bg-sky-50 px-3 py-2">
+              <p className="mb-1 text-xs font-bold tracking-wide text-sky-700">
+                STATO OPERATIVO (MULTI)
+              </p>
+              <div className="flex flex-wrap gap-x-3 gap-y-1">
+                {operationalStatusSelectOptions.map((value) => (
+                  <label
+                    key={value}
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-sky-900"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={operationalStatusFilters.includes(value)}
+                      onChange={() => toggleOperationalStatus(value)}
+                      className="h-3.5 w-3.5 accent-sky-600"
+                    />
+                    {value}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-md border border-emerald-300 bg-emerald-50 px-3 py-2">
+              <p className="mb-1 text-xs font-bold tracking-wide text-emerald-700">
+                SQUADRA (MULTI)
+              </p>
+              <div className="flex flex-wrap gap-x-3 gap-y-1">
+                {teamOptions.map((value) => (
+                  <label
+                    key={value}
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-900"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={teamFilters.includes(value)}
+                      onChange={() => toggleTeam(value)}
+                      className="h-3.5 w-3.5 accent-emerald-600"
+                    />
+                    {value}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleSignOut}
+              className="ml-auto rounded-md border border-red-700 bg-red-600 px-3 py-2 text-sm font-bold text-white hover:bg-red-700"
+            >
+              Esci
+            </button>
+          </div>
         </header>
 
         {errorMessage ? (

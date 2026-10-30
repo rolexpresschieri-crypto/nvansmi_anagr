@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
@@ -349,18 +350,30 @@ export default function ExportReportsPanel() {
     <main className="min-h-screen p-6">
       <div className="mx-auto max-w-6xl space-y-4">
         <header className="app-card rounded-xl p-4">
-          <h1 className="text-2xl font-semibold text-slate-900">Export e Report PDF</h1>
-          <p className="mt-1 text-sm text-slate-600">
-            Report in formato PDF con logo NV ANSMI in alto a destra. Ordinamento per cognome e
-            nome.
-          </p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <Link
-              href="/"
-              className="inline-flex rounded-md border border-amber-400 bg-amber-300 px-3 py-2 text-sm font-bold text-amber-950 hover:bg-amber-400"
-            >
-              Torna all&apos;anagrafica
-            </Link>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h1 className="text-2xl font-semibold text-slate-900">Export e Report PDF</h1>
+              <p className="mt-1 text-sm text-slate-600">
+                Report in formato PDF con logo NV ANSMI in alto a destra. Ordinamento per cognome e
+                nome.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Link
+                  href="/"
+                  className="inline-flex rounded-md border border-amber-400 bg-amber-300 px-3 py-2 text-sm font-bold text-amber-950 hover:bg-amber-400"
+                >
+                  Torna all&apos;anagrafica
+                </Link>
+              </div>
+            </div>
+            <Image
+              src="/logo-nvansmi.png"
+              alt="NV ANSMI"
+              width={64}
+              height={64}
+              className="h-16 w-16 shrink-0 object-contain"
+              priority
+            />
           </div>
 
           <nav
