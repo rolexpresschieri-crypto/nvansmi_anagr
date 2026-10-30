@@ -1,7 +1,10 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { drawPdfLogo, formatPdfItDate, loadLogoDataUrl } from "@/lib/pdfReportUtils";
-import type { VolunteerRecord } from "@/lib/volunteerTypes";
+import {
+  normalizeOperationalStatus,
+  type VolunteerRecord,
+} from "@/lib/volunteerTypes";
 
 const REPORT_COLUMNS: {
   header: string;
@@ -14,6 +17,7 @@ const REPORT_COLUMNS: {
   { header: "SEDE\nNV", key: "nv_office" },
   { header: "SQUADRA", key: "team" },
   { header: "TIPO\nSOCIO", key: "member_type", align: "center" },
+  { header: "STATO\nOP.", key: "operational_status", align: "center" },
   { header: "QUALIFICA", key: "qualification" },
   { header: "COGNOME", key: "last_name" },
   { header: "NOME", key: "first_name" },
@@ -79,6 +83,10 @@ function cellValue(
 
   if (col.key === "extra") return "";
 
+  if (col.key === "operational_status") {
+    return normalizeOperationalStatus(volunteer.operational_status);
+  }
+
   const raw = volunteer[col.key as keyof VolunteerRecord];
   if (raw == null) return "";
   if (col.key === "entry_date" || col.key === "exit_date" || col.key === "birth_date") {
@@ -99,6 +107,7 @@ const FIXED_WIDTH_HEADERS = new Set([
   "DATA\nENTRATA",
   "DATA\nUSCITA",
   "TIPO\nSOCIO",
+  "STATO\nOP.",
   "ASSIC.\nPC",
   "N°\nTESS.\nANSMI",
   "N°\nTESS.\nNV",

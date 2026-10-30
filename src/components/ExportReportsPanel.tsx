@@ -9,7 +9,9 @@ import { supabase } from "@/lib/supabaseClient";
 import {
   isVolunteerActive,
   memberTypeSelectOptions,
+  normalizeOperationalStatus,
   normalizeQualification,
+  operationalStatusSelectOptions,
   qualificationFilterOptions,
   teamSelectOptions,
   type VolunteerRecord,
@@ -32,6 +34,9 @@ export default function ExportReportsPanel() {
   const [socioFilter, setSocioFilter] = useState<"tutti" | "attivi" | "non_attivi">("attivi");
   const [memberTypeFilters, setMemberTypeFilters] = useState<string[]>([
     ...memberTypeSelectOptions,
+  ]);
+  const [operationalStatusFilters, setOperationalStatusFilters] = useState<string[]>([
+    ...operationalStatusSelectOptions,
   ]);
   const [teamFilters, setTeamFilters] = useState<string[]>([...teamSelectOptions]);
   const [qualificationFilters, setQualificationFilters] = useState<string[]>([
@@ -166,6 +171,11 @@ export default function ExportReportsPanel() {
         memberTypeFilters.length === 0 ||
         (item.member_type ? memberTypeFilters.includes(item.member_type) : false);
 
+      const status = normalizeOperationalStatus(item.operational_status);
+      const matchOperationalStatus =
+        operationalStatusFilters.length === 0 ||
+        operationalStatusFilters.includes(status);
+
       const matchTeam =
         teamFilters.length === 0 || (item.team ? teamFilters.includes(item.team) : false);
 
@@ -174,9 +184,22 @@ export default function ExportReportsPanel() {
         qualificationFilters.length === 0 ||
         (qual ? qualificationFilters.includes(qual) : false);
 
-      return matchSocio && matchMemberType && matchTeam && matchQualification;
+      return (
+        matchSocio &&
+        matchMemberType &&
+        matchOperationalStatus &&
+        matchTeam &&
+        matchQualification
+      );
     });
-  }, [volunteers, socioFilter, memberTypeFilters, teamFilters, qualificationFilters]);
+  }, [
+    volunteers,
+    socioFilter,
+    memberTypeFilters,
+    operationalStatusFilters,
+    teamFilters,
+    qualificationFilters,
+  ]);
 
   const filteredMedicalVolunteers = useMemo(() => {
     return volunteers.filter((item) => {
@@ -202,12 +225,21 @@ export default function ExportReportsPanel() {
     if (memberTypeFilters.length > 0) {
       parts.push(`Tipo socio: ${memberTypeFilters.join(", ")}`);
     }
+    if (operationalStatusFilters.length > 0) {
+      parts.push(`Stato operativo: ${operationalStatusFilters.join(", ")}`);
+    }
     if (teamFilters.length > 0) parts.push(`Squadra: ${teamFilters.join(", ")}`);
     if (qualificationFilters.length > 0) {
       parts.push(`Qualifica: ${qualificationFilters.join(", ")}`);
     }
     return parts.join(" | ");
-  }, [socioFilter, memberTypeFilters, teamFilters, qualificationFilters]);
+  }, [
+    socioFilter,
+    memberTypeFilters,
+    operationalStatusFilters,
+    teamFilters,
+    qualificationFilters,
+  ]);
 
   const medicalFilterSummary = useMemo(() => {
     const parts: string[] = ["Soci attivi"];
@@ -405,6 +437,15 @@ export default function ExportReportsPanel() {
             (v) => setMemberTypeFilters((c) => toggleInList(c, v)),
             () => setMemberTypeFilters([...memberTypeSelectOptions]),
             () => setMemberTypeFilters([])
+          )}
+
+          {checkboxGroup(
+            "Stato operativo",
+            [...operationalStatusSelectOptions],
+            operationalStatusFilters,
+            (v) => setOperationalStatusFilters((c) => toggleInList(c, v)),
+            () => setOperationalStatusFilters([...operationalStatusSelectOptions]),
+            () => setOperationalStatusFilters([])
           )}
 
           {checkboxGroup(

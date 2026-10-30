@@ -10,9 +10,12 @@ import VolunteerExtrasPanel from "@/components/VolunteerExtrasPanel";
 import { supabase } from "@/lib/supabaseClient";
 import {
   emptyVolunteerForm,
+  formatOperationalStatus,
   formatQualification,
   isVolunteerActive,
   memberTypeSelectOptions,
+  normalizeOperationalStatus,
+  operationalStatusSelectOptions,
   qualificationSelectOptions,
   teamSelectOptions,
   volunteerFormFromRecord,
@@ -41,6 +44,9 @@ export default function Home() {
     "tutti"
   );
   const [memberTypeFilters, setMemberTypeFilters] = useState<string[]>([]);
+  const [operationalStatusFilters, setOperationalStatusFilters] = useState<string[]>([
+    ...operationalStatusSelectOptions,
+  ]);
   const [teamFilters, setTeamFilters] = useState<string[]>([]);
   const [selectedVolunteerId, setSelectedVolunteerId] = useState<string | null>(
     null
@@ -185,12 +191,30 @@ export default function Home() {
         memberTypeFilters.length === 0 ||
         (item.member_type ? memberTypeFilters.includes(item.member_type) : false);
 
+      const status = normalizeOperationalStatus(item.operational_status);
+      const matchOperationalStatus =
+        operationalStatusFilters.length === 0 ||
+        operationalStatusFilters.includes(status);
+
       const matchTeam =
         teamFilters.length === 0 || (item.team ? teamFilters.includes(item.team) : false);
 
-      return matchSearch && matchSocio && matchMemberType && matchTeam;
+      return (
+        matchSearch &&
+        matchSocio &&
+        matchMemberType &&
+        matchOperationalStatus &&
+        matchTeam
+      );
     });
-  }, [volunteers, search, socioFilter, memberTypeFilters, teamFilters]);
+  }, [
+    volunteers,
+    search,
+    socioFilter,
+    memberTypeFilters,
+    operationalStatusFilters,
+    teamFilters,
+  ]);
 
   const memberTypeOptions = useMemo(() => {
     const values = Array.from(
@@ -208,6 +232,14 @@ export default function Home() {
 
   const toggleMemberType = (value: string) => {
     setMemberTypeFilters((current) =>
+      current.includes(value)
+        ? current.filter((item) => item !== value)
+        : [...current, value]
+    );
+  };
+
+  const toggleOperationalStatus = (value: string) => {
+    setOperationalStatusFilters((current) =>
       current.includes(value)
         ? current.filter((item) => item !== value)
         : [...current, value]
@@ -466,6 +498,28 @@ export default function Home() {
                 </div>
               </div>
 
+              <div className="rounded-md border border-sky-300 bg-sky-50 px-3 py-2">
+                <p className="mb-1 text-xs font-bold tracking-wide text-sky-700">
+                  STATO OPERATIVO (MULTI)
+                </p>
+                <div className="flex flex-wrap gap-x-3 gap-y-1">
+                  {operationalStatusSelectOptions.map((value) => (
+                    <label
+                      key={value}
+                      className="inline-flex items-center gap-1 text-xs font-semibold text-sky-900"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={operationalStatusFilters.includes(value)}
+                        onChange={() => toggleOperationalStatus(value)}
+                        className="h-3.5 w-3.5 accent-sky-600"
+                      />
+                      {value}
+                    </label>
+                  ))}
+                </div>
+              </div>
+
               <div className="rounded-md border border-emerald-300 bg-emerald-50 px-3 py-2">
                 <p className="mb-1 text-xs font-bold tracking-wide text-emerald-700">
                   SQUADRA (MULTI)
@@ -579,7 +633,8 @@ export default function Home() {
                       </h2>
                       <p className="text-sm text-slate-600">
                         Stato: {isVolunteerActive(selectedVolunteer) ? "attivo" : "non attivo"}{" "}
-                        | Tipo socio: {selectedVolunteer.member_type ?? "-"} | Qualifica:{" "}
+                        | Tipo socio: {selectedVolunteer.member_type ?? "-"} | Stato:{" "}
+                        {formatOperationalStatus(selectedVolunteer.operational_status)} | Qualifica:{" "}
                         {formatQualification(selectedVolunteer.qualification)} | Squadra:{" "}
                         {selectedVolunteer.team ?? "-"}
                       </p>
@@ -805,6 +860,28 @@ export default function Home() {
                   {memberTypeSelectOptions.map((option) => (
                     <option key={option} value={option}>
                       {option}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="block">
+                <span className="mb-1 block text-xs font-semibold text-slate-700">
+                  Stato operativo
+                </span>
+                <select
+                  value={volunteerForm.operational_status}
+                  onChange={(event) =>
+                    handleVolunteerFormChange(
+                      "operational_status",
+                      event.target.value.toUpperCase()
+                    )
+                  }
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+                >
+                  {operationalStatusSelectOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {formatOperationalStatus(option)}
                     </option>
                   ))}
                 </select>

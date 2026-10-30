@@ -12,6 +12,8 @@ export type VolunteerRecord = {
   qualification: string | null;
   team: string | null;
   member_type: string | null;
+  /** F = in formazione, O = operativo, N = non definito */
+  operational_status: string | null;
   entry_date: string | null;
   exit_date: string | null;
   ansmi_office: string | null;
@@ -37,6 +39,7 @@ export type VolunteerFormValues = {
   phone: string;
   email: string;
   member_type: string;
+  operational_status: string;
   qualification: string;
   team: string;
   entry_date: string;
@@ -56,10 +59,10 @@ export type VolunteerFormValues = {
 };
 
 export const VOLUNTEER_SELECT_FIELDS =
-  `id, first_name, last_name, tax_code, phone, email, qualification, team, member_type, entry_date, exit_date, ansmi_office, nv_office, pc_insurance, ansmi_card_number, nv_card_number, residence_address, residence_zip, residence_city, residence_province, birth_place, birth_province, birth_date, dogs(${DOG_SELECT_FIELDS})`;
+  `id, first_name, last_name, tax_code, phone, email, qualification, team, member_type, operational_status, entry_date, exit_date, ansmi_office, nv_office, pc_insurance, ansmi_card_number, nv_card_number, residence_address, residence_zip, residence_city, residence_province, birth_place, birth_province, birth_date, dogs(${DOG_SELECT_FIELDS})`;
 
 export const VOLUNTEER_EXPORT_SELECT_FIELDS =
-  "id, first_name, last_name, tax_code, phone, email, qualification, team, member_type, entry_date, exit_date, ansmi_office, nv_office, pc_insurance, ansmi_card_number, nv_card_number, residence_address, residence_zip, residence_city, residence_province, birth_place, birth_province, birth_date, medical_checks(check_date, expiry_date)";
+  "id, first_name, last_name, tax_code, phone, email, qualification, team, member_type, operational_status, entry_date, exit_date, ansmi_office, nv_office, pc_insurance, ansmi_card_number, nv_card_number, residence_address, residence_zip, residence_city, residence_province, birth_place, birth_province, birth_date, medical_checks(check_date, expiry_date)";
 
 export const emptyVolunteerForm = (): VolunteerFormValues => ({
   first_name: "",
@@ -68,6 +71,7 @@ export const emptyVolunteerForm = (): VolunteerFormValues => ({
   phone: "",
   email: "",
   member_type: "",
+  operational_status: "N",
   qualification: "",
   team: "",
   entry_date: "",
@@ -87,6 +91,8 @@ export const emptyVolunteerForm = (): VolunteerFormValues => ({
 });
 
 export const memberTypeSelectOptions = ["S F", "S F U", "S F V", "S U", "S V", "S V U", "U"];
+export const operationalStatusSelectOptions = ["F", "O", "N"] as const;
+export type OperationalStatus = (typeof operationalStatusSelectOptions)[number];
 export const teamSelectOptions = ["VALSUSA", "VARESE"];
 export const qualificationSelectOptions = [
   "ISTR TECH",
@@ -114,6 +120,20 @@ export function formatQualification(value: string | null | undefined): string {
   return normalized || "-";
 }
 
+/** Sempre maiuscolo: F / O / N. Valori vuoti o non riconosciuti -> N. */
+export function normalizeOperationalStatus(value: string | null | undefined): OperationalStatus {
+  const normalized = (value ?? "").trim().toUpperCase();
+  if (normalized === "F" || normalized === "O" || normalized === "N") return normalized;
+  return "N";
+}
+
+export function formatOperationalStatus(value: string | null | undefined): string {
+  const status = normalizeOperationalStatus(value);
+  if (status === "F") return "F (in formazione)";
+  if (status === "O") return "O (operativo)";
+  return "N (non definito)";
+}
+
 /** Checkbox filtri export (etichette sempre ODR, mai PC). */
 export const qualificationFilterOptions = qualificationSelectOptions;
 
@@ -125,6 +145,7 @@ export function volunteerFormFromRecord(volunteer: VolunteerRecord): VolunteerFo
     phone: volunteer.phone ?? "",
     email: volunteer.email ?? "",
     member_type: volunteer.member_type ?? "",
+    operational_status: normalizeOperationalStatus(volunteer.operational_status),
     qualification: normalizeQualification(volunteer.qualification),
     team: volunteer.team ?? "",
     entry_date: volunteer.entry_date ?? "",
@@ -152,6 +173,7 @@ export function volunteerPayloadFromForm(form: VolunteerFormValues) {
     phone: form.phone.trim() || null,
     email: form.email.trim() || null,
     member_type: form.member_type.trim() || null,
+    operational_status: normalizeOperationalStatus(form.operational_status),
     qualification: normalizeQualification(form.qualification.trim()) || null,
     team: form.team.trim() || null,
     entry_date: form.entry_date || null,
