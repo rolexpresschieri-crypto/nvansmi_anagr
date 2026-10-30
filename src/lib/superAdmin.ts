@@ -6,7 +6,8 @@ export const SUPERADMIN_EMAIL = (
   .toLowerCase();
 
 export function isSuperAdminEmail(email: string | null | undefined): boolean {
-  return Boolean(email) && email.trim().toLowerCase() === SUPERADMIN_EMAIL;
+  if (!email) return false;
+  return email.trim().toLowerCase() === SUPERADMIN_EMAIL;
 }
 
 export const DEFAULT_USER_PASSWORD = "123456";
