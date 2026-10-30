@@ -9,6 +9,7 @@ import DogDetailCard from "@/components/DogDetailCard";
 import VolunteerExtendedFormFields from "@/components/VolunteerExtendedFormFields";
 import VolunteerExtrasPanel from "@/components/VolunteerExtrasPanel";
 import { logAppEvent } from "@/lib/auditLog";
+import { isSuperAdminEmail } from "@/lib/superAdmin";
 import { supabase } from "@/lib/supabaseClient";
 import {
   emptyVolunteerForm,
@@ -551,6 +552,15 @@ export default function Home() {
                 className="inline-flex items-center rounded-md border border-slate-400 bg-slate-100 px-3 py-2 text-sm font-bold text-slate-800 hover:bg-slate-200"
               >
                 LOG ACCESSI
+              </Link>
+            ) : null}
+
+            {isSuperAdminEmail(session.user.email) ? (
+              <Link
+                href="/users"
+                className="inline-flex items-center rounded-md border border-violet-400 bg-violet-100 px-3 py-2 text-sm font-bold text-violet-900 hover:bg-violet-200"
+              >
+                UTENTI
               </Link>
             ) : null}
 
