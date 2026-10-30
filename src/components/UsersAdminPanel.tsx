@@ -288,6 +288,7 @@ export default function UsersAdminPanel() {
                 <input
                   type={showNewPassword ? "text" : "password"}
                   required
+                  autoComplete="new-password"
                   value={newPassword}
                   onChange={(event) => setNewPassword(event.target.value)}
                   className="w-full rounded-md border border-slate-300 px-3 py-2 pr-10 text-sm"
@@ -423,6 +424,7 @@ export default function UsersAdminPanel() {
                 <div className="relative max-w-md">
                   <input
                     type={showEditPassword ? "text" : "password"}
+                    autoComplete="new-password"
                     value={editPassword}
                     onChange={(event) => setEditPassword(event.target.value)}
                     placeholder="Lascia vuoto per non cambiare"
