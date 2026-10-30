@@ -8,6 +8,7 @@ import DogBrevettiEditor from "@/components/DogBrevettiEditor";
 import DogDetailCard from "@/components/DogDetailCard";
 import VolunteerExtendedFormFields from "@/components/VolunteerExtendedFormFields";
 import VolunteerExtrasPanel from "@/components/VolunteerExtrasPanel";
+import { logAppEvent } from "@/lib/auditLog";
 import { supabase } from "@/lib/supabaseClient";
 import {
   emptyVolunteerForm,
@@ -31,6 +32,7 @@ type Volunteer = VolunteerRecord;
 export default function Home() {
   const [uiPreset, setUiPreset] = useState<"chiara" | "istituzionale">("chiara");
   const [session, setSession] = useState<Session | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const [isBootLoading, setIsBootLoading] = useState(true);
   const [isAuthLoading, setIsAuthLoading] = useState(false);
   const [isDataLoading, setIsDataLoading] = useState(false);
@@ -145,6 +147,19 @@ export default function Home() {
     []
   );
 
+  const loadUserRole = useCallback(async (userId: string | undefined) => {
+    if (!userId) {
+      setUserRole(null);
+      return;
+    }
+    const { data } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", userId)
+      .maybeSingle();
+    setUserRole((data?.role as string | undefined) ?? null);
+  }, []);
+
   useEffect(() => {
     const boot = async () => {
       const { data, error } = await supabase.auth.getSession();
@@ -154,7 +169,10 @@ export default function Home() {
       } else {
         setSession(data.session);
         loadPresetForUser(data.session?.user?.id);
-        await loadVolunteersForSession(data.session);
+        await Promise.all([
+          loadVolunteersForSession(data.session),
+          loadUserRole(data.session?.user?.id),
+        ]);
       }
 
       setIsBootLoading(false);
@@ -167,11 +185,12 @@ export default function Home() {
         setSession(currentSession);
         loadPresetForUser(currentSession?.user?.id);
         void loadVolunteersForSession(currentSession);
+        void loadUserRole(currentSession?.user?.id);
       }
     );
 
     return () => authListener.subscription.unsubscribe();
-  }, [loadVolunteersForSession]);
+  }, [loadVolunteersForSession, loadUserRole]);
 
   const filteredVolunteers = useMemo(() => {
     const keyword = search.trim().toLowerCase();
@@ -281,6 +300,7 @@ export default function Home() {
     if (error) {
       setErrorMessage(error.message);
     } else {
+      await logAppEvent("LOGIN", `Accesso di ${email.trim().toLowerCase()}`);
       setEmail("");
       setPassword("");
     }
@@ -290,6 +310,7 @@ export default function Home() {
 
   const handleSignOut = async () => {
     setErrorMessage(null);
+    await logAppEvent("LOGOUT", "Uscita dall'applicazione");
     await supabase.auth.signOut();
   };
 
@@ -484,6 +505,15 @@ export default function Home() {
             >
               EXPORT / REPORT
             </Link>
+
+            {userRole === "admin" || userRole === "segreteria" ? (
+              <Link
+                href="/audit"
+                className="inline-flex items-center rounded-md border border-slate-400 bg-slate-100 px-3 py-2 text-sm font-bold text-slate-800 hover:bg-slate-200"
+              >
+                LOG ACCESSI
+              </Link>
+            ) : null}
 
             <select
               value={socioFilter}

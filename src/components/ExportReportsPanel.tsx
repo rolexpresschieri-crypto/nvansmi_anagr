@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
+import { logAppEvent } from "@/lib/auditLog";
 import { generateMedicalVisitsPdf } from "@/lib/generateMedicalVisitsPdf";
 import { generateVolunteersPdf } from "@/lib/generateVolunteersPdf";
 import { supabase } from "@/lib/supabaseClient";
@@ -258,6 +259,11 @@ export default function ExportReportsPanel() {
     setErrorMessage(null);
     try {
       await generateVolunteersPdf(filteredVolunteers, filterSummary);
+      await logAppEvent(
+        "EXPORT",
+        `PDF elenco volontari (${filteredVolunteers.length})`,
+        { tableName: "volunteers", newData: { filterSummary } }
+      );
     } catch (err) {
       setErrorMessage(err instanceof Error ? err.message : "Errore generazione PDF");
     } finally {
@@ -274,6 +280,11 @@ export default function ExportReportsPanel() {
     setErrorMessage(null);
     try {
       await generateMedicalVisitsPdf(filteredMedicalVolunteers, medicalFilterSummary);
+      await logAppEvent(
+        "EXPORT",
+        `PDF visite mediche (${filteredMedicalVolunteers.length})`,
+        { tableName: "medical_checks", newData: { filterSummary: medicalFilterSummary } }
+      );
     } catch (err) {
       setErrorMessage(err instanceof Error ? err.message : "Errore generazione PDF");
     } finally {
