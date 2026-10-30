@@ -546,7 +546,7 @@ export default function Home() {
           <button
             type="button"
             onClick={handleSignOut}
-            className="rounded-md border border-slate-300 bg-white/90 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            className="rounded-md border border-red-700 bg-red-600 px-3 py-2 text-sm font-bold text-white hover:bg-red-700"
           >
             Esci
           </button>

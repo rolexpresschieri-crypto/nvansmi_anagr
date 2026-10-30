@@ -357,7 +357,7 @@ export default function ExportReportsPanel() {
           <div className="mt-3 flex flex-wrap gap-2">
             <Link
               href="/"
-              className="inline-flex rounded-md border border-slate-300 bg-white/90 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+              className="inline-flex rounded-md border border-amber-400 bg-amber-300 px-3 py-2 text-sm font-bold text-amber-950 hover:bg-amber-400"
             >
               Torna all&apos;anagrafica
             </Link>
