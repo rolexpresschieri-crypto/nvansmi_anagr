@@ -305,7 +305,11 @@ export default function VolunteerExtrasPanel({
       const { data: savedCourse, error: courseError } = existing
         ? await supabase
             .from("volunteer_courses")
-            .update({ completion_date: dateValue, passed: true })
+            .update({
+              course_id: courseId,
+              completion_date: dateValue,
+              passed: true,
+            })
             .eq("id", existing.id)
             .select("id")
             .single()
