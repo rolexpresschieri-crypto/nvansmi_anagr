@@ -750,10 +750,17 @@ export default function Home() {
                     </button>
                   </div>
                   <p className="mt-1 text-xs text-slate-500">
-                    CF: {selectedVolunteer.tax_code ?? "-"} | Tel: {selectedVolunteer.phone ?? "-"}{" "}
-                    | Email: {selectedVolunteer.email ?? "-"}
+                    CF: {selectedVolunteer.tax_code ?? "-"}
                   </p>
                   <div className="mt-3 grid gap-2 text-sm text-slate-700 sm:grid-cols-2">
+                    <p>
+                      <span className="font-semibold">Telefono:</span>{" "}
+                      {selectedVolunteer.phone ?? "-"}
+                    </p>
+                    <p>
+                      <span className="font-semibold">Email:</span>{" "}
+                      {selectedVolunteer.email ?? "-"}
+                    </p>
                     <p>
                       <span className="font-semibold">Sede ANSMI:</span>{" "}
                       {selectedVolunteer.ansmi_office ?? "-"}
