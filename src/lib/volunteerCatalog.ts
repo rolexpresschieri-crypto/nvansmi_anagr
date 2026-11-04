@@ -65,6 +65,52 @@ export function isPredefinedCourseCode(code: string): boolean {
   return PREDEFINED_COURSE_CODES.has(code);
 }
 
+export function predefinedCourseOrder(code: string): number {
+  const index = COURSE_DEFINITIONS.findIndex((course) => course.code === code);
+  return index === -1 ? COURSE_DEFINITIONS.length : index;
+}
+
+/** Etichette corte (con andata a capo) per le colonne dei report orizzontali. */
+export const COURSE_SHORT_LABELS: Record<string, string> = {
+  LG81_BASE: "BASE\nLG 81",
+  ALTO_RISCHIO: "ALTO\nRISCHIO",
+  TEORIA_ELI: "TEORIA\nAVV. ELI",
+  PS_OISI: "P. SOCC.\nOISI",
+  PS_VET: "P. SOCC.\nVET",
+  PRATICA_ELI: "PRATICA\nAVV. ELI",
+  TLC_PC: "TLC\nBASE PC",
+  TLC_NV: "TLC\nNV ANSMI",
+  CARTO_GPS: "CARTOGR.\n& GPS",
+  ANPAS_OCN: "ANPAS\nOCN",
+  ANPAS_ODR: "ANPAS\nODR",
+  DAE: "DAE",
+};
+
+/** Manda a capo il nome corso su righe brevi, togliendo il prefisso "CORSO". */
+export function wrapCourseLabel(name: string, maxLineChars = 9): string {
+  const cleaned = normalizeCourseName(name).replace(/^CORSO\s+/, "");
+  if (!cleaned) return "";
+  const lines: string[] = [];
+  let current = "";
+  for (const word of cleaned.split(" ")) {
+    if (!current) {
+      current = word;
+      continue;
+    }
+    if (`${current} ${word}`.length <= maxLineChars) current = `${current} ${word}`;
+    else {
+      lines.push(current);
+      current = word;
+    }
+  }
+  if (current) lines.push(current);
+  return lines.join("\n");
+}
+
+export function courseShortLabel(code: string, name: string): string {
+  return COURSE_SHORT_LABELS[code] ?? wrapCourseLabel(name);
+}
+
 export const EQUIPMENT_DEFINITIONS: EquipmentDefinition[] = [
   { code: "TSHIRT", label: "T-SHIRT", csvColumn: "T-SHIRT" },
   { code: "SOFTSHELL", label: "SOFTSHELL", csvColumn: "SOFTSHELL" },
