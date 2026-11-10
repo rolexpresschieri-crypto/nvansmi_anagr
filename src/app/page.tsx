@@ -754,12 +754,56 @@ export default function Home() {
                   </p>
                   <div className="mt-3 grid gap-2 text-sm text-slate-700 sm:grid-cols-2">
                     <p>
+                      <span className="font-semibold">Cognome:</span>{" "}
+                      {selectedVolunteer.last_name ?? "-"}
+                    </p>
+                    <p>
+                      <span className="font-semibold">Nome:</span>{" "}
+                      {selectedVolunteer.first_name ?? "-"}
+                    </p>
+                    <p>
+                      <span className="font-semibold">Codice fiscale:</span>{" "}
+                      {selectedVolunteer.tax_code ?? "-"}
+                    </p>
+                    <p>
+                      <span className="font-semibold">Stato anagrafica:</span>{" "}
+                      {isVolunteerActive(selectedVolunteer) ? "attivo" : "non attivo"}
+                    </p>
+                    <p>
                       <span className="font-semibold">Telefono:</span>{" "}
                       {selectedVolunteer.phone ?? "-"}
                     </p>
                     <p>
                       <span className="font-semibold">Email:</span>{" "}
                       {selectedVolunteer.email ?? "-"}
+                    </p>
+                    <p>
+                      <span className="font-semibold">Tipo socio:</span>{" "}
+                      {selectedVolunteer.member_type ?? "-"}
+                    </p>
+                    <p>
+                      <span className="font-semibold">Stato operativo:</span>{" "}
+                      {formatOperationalStatus(selectedVolunteer.operational_status)}
+                    </p>
+                    <p>
+                      <span className="font-semibold">Qualifica:</span>{" "}
+                      {formatQualification(selectedVolunteer.qualification)}
+                    </p>
+                    <p>
+                      <span className="font-semibold">Squadra:</span>{" "}
+                      {selectedVolunteer.team ?? "-"}
+                    </p>
+                    <p>
+                      <span className="font-semibold">Data entrata:</span>{" "}
+                      {selectedVolunteer.entry_date
+                        ? new Date(selectedVolunteer.entry_date).toLocaleDateString("it-IT")
+                        : "-"}
+                    </p>
+                    <p>
+                      <span className="font-semibold">Data uscita:</span>{" "}
+                      {selectedVolunteer.exit_date
+                        ? new Date(selectedVolunteer.exit_date).toLocaleDateString("it-IT")
+                        : "-"}
                     </p>
                     <p>
                       <span className="font-semibold">Sede ANSMI:</span>{" "}
@@ -781,40 +825,38 @@ export default function Home() {
                       <span className="font-semibold">N° tessera NV ANSMI:</span>{" "}
                       {selectedVolunteer.nv_card_number ?? "-"}
                     </p>
+                    <p>
+                      <span className="font-semibold">N° tessera ENCI:</span>{" "}
+                      {selectedVolunteer.enci_card_number ?? "-"}
+                    </p>
                     <p className="sm:col-span-2">
-                      <span className="font-semibold">Residenza:</span>{" "}
-                      {[
-                        selectedVolunteer.residence_address,
-                        selectedVolunteer.residence_zip,
-                        selectedVolunteer.residence_city,
-                        selectedVolunteer.residence_province,
-                      ]
-                        .filter(Boolean)
-                        .join(" ") || "-"}
+                      <span className="font-semibold">Indirizzo:</span>{" "}
+                      {selectedVolunteer.residence_address ?? "-"}
+                    </p>
+                    <p>
+                      <span className="font-semibold">CAP:</span>{" "}
+                      {selectedVolunteer.residence_zip ?? "-"}
+                    </p>
+                    <p>
+                      <span className="font-semibold">Città:</span>{" "}
+                      {selectedVolunteer.residence_city ?? "-"}
+                    </p>
+                    <p>
+                      <span className="font-semibold">Provincia residenza:</span>{" "}
+                      {selectedVolunteer.residence_province ?? "-"}
                     </p>
                     <p>
                       <span className="font-semibold">Luogo di nascita:</span>{" "}
                       {selectedVolunteer.birth_place ?? "-"}
-                      {selectedVolunteer.birth_province
-                        ? ` (${selectedVolunteer.birth_province})`
-                        : ""}
+                    </p>
+                    <p>
+                      <span className="font-semibold">Prov. nascita:</span>{" "}
+                      {selectedVolunteer.birth_province ?? "-"}
                     </p>
                     <p>
                       <span className="font-semibold">Data di nascita:</span>{" "}
                       {selectedVolunteer.birth_date
                         ? new Date(selectedVolunteer.birth_date).toLocaleDateString("it-IT")
-                        : "-"}
-                    </p>
-                    <p>
-                      <span className="font-semibold">Data entrata:</span>{" "}
-                      {selectedVolunteer.entry_date
-                        ? new Date(selectedVolunteer.entry_date).toLocaleDateString("it-IT")
-                        : "-"}
-                    </p>
-                    <p>
-                      <span className="font-semibold">Data uscita:</span>{" "}
-                      {selectedVolunteer.exit_date
-                        ? new Date(selectedVolunteer.exit_date).toLocaleDateString("it-IT")
                         : "-"}
                     </p>
                   </div>

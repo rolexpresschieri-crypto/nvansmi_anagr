@@ -678,18 +678,35 @@ export default function VolunteerExtrasPanel({
             {EQUIPMENT_DEFINITIONS.map((def) => (
               <label key={def.code} className="block rounded-md border border-slate-200 bg-slate-50 p-2">
                 <span className="mb-1 block text-xs font-bold text-slate-800">{def.label}</span>
-                <input
-                  type="text"
-                  placeholder="Taglia (es. M, L, XL, SI)"
-                  value={equipmentSizes[def.code] ?? ""}
-                  onChange={(e) =>
-                    setEquipmentSizes((current) => ({
-                      ...current,
-                      [def.code]: e.target.value,
-                    }))
-                  }
-                  className="w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm uppercase"
-                />
+                {def.inputType === "yesno" ? (
+                  <select
+                    value={equipmentSizes[def.code] ?? ""}
+                    onChange={(e) =>
+                      setEquipmentSizes((current) => ({
+                        ...current,
+                        [def.code]: e.target.value,
+                      }))
+                    }
+                    className="w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm uppercase"
+                  >
+                    <option value="">—</option>
+                    <option value="SI">SI</option>
+                    <option value="NO">NO</option>
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    placeholder="Taglia (es. M, L, XL, SI)"
+                    value={equipmentSizes[def.code] ?? ""}
+                    onChange={(e) =>
+                      setEquipmentSizes((current) => ({
+                        ...current,
+                        [def.code]: e.target.value,
+                      }))
+                    }
+                    className="w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm uppercase"
+                  />
+                )}
               </label>
             ))}
           </div>

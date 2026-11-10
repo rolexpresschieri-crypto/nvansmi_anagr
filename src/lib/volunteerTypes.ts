@@ -21,6 +21,7 @@ export type VolunteerRecord = {
   pc_insurance: string | null;
   ansmi_card_number: string | null;
   nv_card_number: string | null;
+  enci_card_number: string | null;
   residence_address: string | null;
   residence_zip: string | null;
   residence_city: string | null;
@@ -28,6 +29,7 @@ export type VolunteerRecord = {
   birth_place: string | null;
   birth_province: string | null;
   birth_date: string | null;
+  photo_path: string | null;
   dogs?: DogRecord[] | null;
   medical_checks?: { check_date: string; expiry_date?: string | null }[] | null;
 };
@@ -49,6 +51,7 @@ export type VolunteerFormValues = {
   pc_insurance: string;
   ansmi_card_number: string;
   nv_card_number: string;
+  enci_card_number: string;
   residence_address: string;
   residence_zip: string;
   residence_city: string;
@@ -59,10 +62,10 @@ export type VolunteerFormValues = {
 };
 
 export const VOLUNTEER_SELECT_FIELDS =
-  `id, first_name, last_name, tax_code, phone, email, qualification, team, member_type, operational_status, entry_date, exit_date, ansmi_office, nv_office, pc_insurance, ansmi_card_number, nv_card_number, residence_address, residence_zip, residence_city, residence_province, birth_place, birth_province, birth_date, dogs(${DOG_SELECT_FIELDS})`;
+  `id, first_name, last_name, tax_code, phone, email, qualification, team, member_type, operational_status, entry_date, exit_date, ansmi_office, nv_office, pc_insurance, ansmi_card_number, nv_card_number, enci_card_number, residence_address, residence_zip, residence_city, residence_province, birth_place, birth_province, birth_date, dogs(${DOG_SELECT_FIELDS})`;
 
 export const VOLUNTEER_EXPORT_SELECT_FIELDS =
-  "id, first_name, last_name, tax_code, phone, email, qualification, team, member_type, operational_status, entry_date, exit_date, ansmi_office, nv_office, pc_insurance, ansmi_card_number, nv_card_number, residence_address, residence_zip, residence_city, residence_province, birth_place, birth_province, birth_date, medical_checks(check_date, expiry_date)";
+  "id, first_name, last_name, tax_code, phone, email, qualification, team, member_type, operational_status, entry_date, exit_date, ansmi_office, nv_office, pc_insurance, ansmi_card_number, nv_card_number, enci_card_number, residence_address, residence_zip, residence_city, residence_province, birth_place, birth_province, birth_date, medical_checks(check_date, expiry_date)";
 
 export const emptyVolunteerForm = (): VolunteerFormValues => ({
   first_name: "",
@@ -81,6 +84,7 @@ export const emptyVolunteerForm = (): VolunteerFormValues => ({
   pc_insurance: "",
   ansmi_card_number: "",
   nv_card_number: "",
+  enci_card_number: "",
   residence_address: "",
   residence_zip: "",
   residence_city: "",
@@ -155,6 +159,7 @@ export function volunteerFormFromRecord(volunteer: VolunteerRecord): VolunteerFo
     pc_insurance: volunteer.pc_insurance ?? "",
     ansmi_card_number: volunteer.ansmi_card_number ?? "",
     nv_card_number: volunteer.nv_card_number ?? "",
+    enci_card_number: volunteer.enci_card_number ?? "",
     residence_address: volunteer.residence_address ?? "",
     residence_zip: volunteer.residence_zip ?? "",
     residence_city: volunteer.residence_city ?? "",
@@ -183,6 +188,7 @@ export function volunteerPayloadFromForm(form: VolunteerFormValues) {
     pc_insurance: form.pc_insurance.trim() || null,
     ansmi_card_number: form.ansmi_card_number.trim() || null,
     nv_card_number: form.nv_card_number.trim() || null,
+    enci_card_number: form.enci_card_number.trim() || null,
     residence_address: form.residence_address.trim() || null,
     residence_zip: form.residence_zip.trim() || null,
     residence_city: form.residence_city.trim() || null,

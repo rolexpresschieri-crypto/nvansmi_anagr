@@ -73,6 +73,17 @@ export default function VolunteerExtendedFormFields({ form, onChange }: Props) {
           className={fieldClass}
         />
       </label>
+      <label className="block">
+        <span className="mb-1 block text-xs font-semibold text-slate-700">
+          N° tessera ENCI (opzionale)
+        </span>
+        <input
+          type="text"
+          value={form.enci_card_number}
+          onChange={(e) => onChange("enci_card_number", e.target.value)}
+          className={fieldClass}
+        />
+      </label>
 
       <p className="md:col-span-2 text-xs font-bold uppercase tracking-wide text-slate-500">
         Residenza

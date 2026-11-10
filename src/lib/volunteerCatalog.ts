@@ -8,6 +8,8 @@ export type EquipmentDefinition = {
   code: string;
   label: string;
   csvColumn: string;
+  /** size = taglia libera; yesno = SI/NO */
+  inputType?: "size" | "yesno";
 };
 
 export const COURSE_DEFINITIONS: CourseDefinition[] = [
@@ -120,4 +122,5 @@ export const EQUIPMENT_DEFINITIONS: EquipmentDefinition[] = [
   { code: "CAPPELLO_EST", label: "CAPPELLO ESTIVO", csvColumn: "CAPPELLO ESTIVO" },
   { code: "CAPPELLO_INV", label: "CAPPELLO INVERNALE", csvColumn: "CAPPELLO INVERNALE" },
   { code: "GIACCA_ANPAS", label: "GIACCA ANPAS", csvColumn: "GIACCA ANPAS" },
+  { code: "CASCO", label: "CASCO", csvColumn: "CASCO", inputType: "yesno" },
 ];
